@@ -1,0 +1,62 @@
+<html>
+    <head>
+   
+        <link type="text/css" rel="stylesheet" href="jsmind.css" />
+        <script type="text/javascript" src="jsmind.js"></script>
+        
+        
+            <script type="text/javascript" src="jsmind.draggable.js"></script>
+        
+    </head>
+    <body>
+        <div id="jsmind_container"></div>
+
+<script type="text/javascript">
+    var mind = {
+    "meta":{
+        "name":"jsMind remote",
+        "author":"hizzgdev@163.com",
+        "version":"0.2"
+    },
+    "format":"node_tree",
+    "data":{"id":"root","topic":"Earth","children":[
+        {"id":"Animals","topic":"Animals","direction":"left","children":[
+            {"id":"Animals1","topic":"Social animals"},
+            {"id":"Animals2","topic":"Wild animals"},
+            {"id":"Animals3","topic":"Sea animals"},
+            
+        ]},
+        {"id":"Water","topic":"Water","direction":"right","children":[
+            {"id":"Water1","topic":"Fresh Water"},
+            {"id":"Water2","topic":"Salt Water"}
+        ]},
+        {"id":"Forests","topic":"Forests","direction":"right","children":[
+            {"id":"Forests1","topic":"Amazon"},
+            {"id":"Forests2","topic":"Daintree – Australia"},
+            {"id":"Forests3","topic":"Congo Rain Forest"},
+            {"id":"Forests4","topic":"dandyyyyyForest"},
+            {"id":"Forests5","topic":"wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwt"}
+             
+        ]},
+        {"id":"Resources","topic":"Resources","direction":"left","children":[
+            {"id":"Resources1","topic":"Renewable"},
+            {"id":"Resources2","topic":"Non-Renewable"}
+        ]}
+    ]}
+};
+
+
+
+
+    var options = {
+        container:'jsmind_container',
+        editable:true,
+        theme:'orange'
+    };
+    var jm = new jsMind(options);
+    // show it
+    jm.show(mind);
+</script>
+
+    </body>
+</html>

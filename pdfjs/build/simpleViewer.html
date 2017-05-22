@@ -1,0 +1,66 @@
+﻿<html>
+<head>
+  <script src="build/pdf.js"></script>
+</head>
+<body>
+  <input name="pdfFile" type="file">
+  <button onclick="loadPDF()">Load File</button>
+
+  <script>
+    /*global PDFJS:false, console:false, Promise:false */
+
+    'use strict';
+
+    //PDFJS.workerSrc = '';
+    PDFJS.disableWorker = true;
+    PDFJS.disableRange = true;
+
+    var renderPage = function (page) {
+      var canvas = document.createElement('canvas');
+      var context = canvas.getContext('2d');
+      var container = document.body;
+      container.appendChild(canvas);
+
+      var viewport = page.getViewport(1);
+      var scale = (container.offsetWidth - 20) / viewport.width;
+      var scaledViewport = page.getViewport(scale);
+
+      canvas.height = scaledViewport.height;
+      canvas.width = scaledViewport.width;
+
+      return page.render({
+        canvasContext: context,
+        viewport: scaledViewport
+      }).promise.then(function () {
+        var promise = page.getAnnotations();
+        return promise;
+      });
+    };
+
+    var loadPDF = function () {
+      var url = document.querySelector('[name=pdfFile]');
+      var b = URL.createObjectURL(url.files[0]);
+      PDFJS.getDocument(b).then(function (pdf) {
+        var promises = [], promise;
+
+        for (var i = 1; i < pdf.numPages; i++) {
+          promise = pdf.getPage(i).then(renderPage);
+          promises.push(promise);
+        }
+
+        Promise.all(promises).then(function (pages) {
+          var items = [];
+
+          pages.forEach(function(annotations) {
+            annotations.forEach(function(annotation) {
+              items.push({ url: annotation.url, title: annotation.title, contents: annotation.contents });
+            });
+          });
+
+          console.log(items);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
