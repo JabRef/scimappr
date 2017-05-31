@@ -1,6 +1,7 @@
 var express = require('express');
 var app = express();
 var path = require('path');
+var bodyParser = require('body-parser');
 var baseUrl = path.resolve(__dirname, 'build');
 app.use( express.static( baseUrl ) );
 
@@ -9,6 +10,13 @@ app.use( express.static( baseUrl ) );
  */
 app.use('*',function (req, res) {
   res.sendFile( baseUrl );
+});
+
+app.use(bodyParser.json());
+
+app.use('/sendData', function (req, res) {
+  console.log(req.body);
+  res.send('ok')
 });
 
 /**
