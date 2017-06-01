@@ -1,0 +1,127 @@
+﻿<html>
+<head>
+  <script src="assets/pdf.js"></script>
+  <link type="text/css" rel="stylesheet" href="assets/jsmind.css" />
+  <script type="text/javascript" src="assets/jsmind.js"></script>
+  <script type="text/javascript" src="assets/jsmind.draggable.js"></script>
+</head>
+<body>
+  <input type="file" multiple webkitdirectory id="fileURL" />
+
+  <div id="jsmind_container"></div>
+
+  <script>
+    /*global PDFJS:false, console:false, Promise:false */
+
+    'use strict';
+
+    PDFJS.disableWorker = true;
+    PDFJS.disableRange = true;
+
+    // JSMind Configuration
+    var options = {
+      container:'jsmind_container',
+      editable:true,
+      theme:'orange'
+    };
+    var mind = {
+      meta: {
+        "name":"jsMind remote",
+        "author":"hizzgdev@163.com",
+        "version":"0.2"
+      },
+      format:"node_tree",
+      data: {
+        id: "root", topic: "PDF", children: []
+      }
+    }
+    var jm = new jsMind(options);
+
+    var sendData = function (data) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", '/sendData', false);
+
+      // Send the proper header information along with the request
+      xhr.setRequestHeader("Content-type", "application/json");
+
+      xhr.send(JSON.stringify(data));
+    }
+
+    var getRandomString = function (num) {
+      num = num || 6;
+      return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, num);
+    };
+
+    var loadPDF = function (filePath, fileName) {
+      PDFJS.getDocument(filePath).then(function (pdf) {
+        var promises = [], promise;
+
+        for (var i = 1; i < pdf.numPages; i++) {
+          promise = pdf.getPage(i).then(function (page) {
+            return page.getAnnotations();
+          });
+          promises.push(promise);
+        }
+
+        var ignoreList = ['Link'];
+
+        Promise.all(promises).then(function (pages) {
+          var items = [];
+
+          pages.forEach(function(annotations) {
+            annotations
+              .filter(function (annotation) {
+                return !ignoreList.includes(annotation.subtype)
+              })
+              .forEach(function(annotation) {
+			  if((annotation.contents != "") && (annotation.subtype == "Popup")) {
+				items.push({
+                  id: getRandomString(),
+                  subtype: annotation.subtype,
+                  title: annotation.title,
+                  topic: annotation.contents
+                });
+			  }
+                
+              });
+            });
+
+          mindmap[fileName] = items;
+
+          // Prepare MindMap Node
+          var mindmapNode = { id: getRandomString(), topic: fileName };
+          mindmapNode.children = items;
+
+          // Add the Node to the Mindmap
+          mind.data.children.push(mindmapNode);
+          sendData({ fileName: fileName, data: items });
+        }).then(function () {
+          // Re-render Mindmap after processing every PDF
+          jm.show(mind);
+        });
+      });
+    }
+
+    var files,
+      file,
+      extension,
+      input = document.getElementById("fileURL"),
+      mindmap = {};
+
+    window.mindmap = mindmap;
+    input.addEventListener("change", function(e) {
+      files = e.target.files;
+      var len = files.length;
+      var promises = [], promise;
+
+      for (var i = 0; i < len; i++) {
+        file = files[i];
+        extension = file.name.split(".").pop();
+        if (extension == 'pdf') {
+          loadPDF(URL.createObjectURL(file), file.name);
+        }
+      }
+    }, false);
+  </script>
+</body>
+</html>
