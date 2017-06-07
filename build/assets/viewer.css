@@ -1,0 +1,50 @@
+
+body {
+  font-family: Arial;
+}
+
+#pdfList {
+  margin-top: 20px;
+  width: 200px;
+  min-height: 300px;
+  border: 2px solid black;
+  background-color: #ddd;
+}
+
+#annotationList {
+  display: none;   
+  margin-top: 20px;
+  margin-left: 20px;
+  width: 200px;
+  min-height: 300px;
+  border: 2px solid black;
+  background-color: #ddd;
+}
+
+div h3 {
+  text-align: center;
+}
+
+.pdfCard {
+  margin: 10px;
+  width: 170px;
+  padding: 5px;
+  border: 1px solid black;
+  background-color: #fff;
+  word-wrap: break-word;
+}
+
+.annotationCard {
+  margin: 10px;
+  width: 170px;
+  padding: 5px;
+  border-radius: 5px;
+  background-color: #f1c40f;
+  word-wrap: break-word;
+  color: white;
+  box-shadow: 1px 1px 4px #000;
+}
+
+.annotationCard:hover, .pdfCard:hover {
+  cursor: hand;
+}
