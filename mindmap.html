@@ -135,7 +135,7 @@
 			<li>
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">PDF<b class="caret"></b></a>
 				<ul class="dropdown-menu">
-					<li><a href="javascript:prompt_info('under construction')">Refresh PDFs</a></li>
+					<li><a href="javascript:mainRefreshPdf()">Refresh PDFs</a></li>
 					<li><a href="javascript:prompt_info('under construction')">Add PDF</a></li>
 					
 				</ul>
@@ -170,11 +170,15 @@
 <div id="wrapper">
 	<div id="sidebar-wrapper" class="col-md-2">
 			<ul class="list-group">
+				<li id="loading-data">
 				<li id='list1' class="list-group-item drag">Cras justo odio</li>
 				<li id='list2' class="list-group-item drag">Dapibus ac facilisis in</li>
 				<li id='list3' class="list-group-item drag">Morbi leo risus</li>
 				<li id='list4' class="list-group-item drag">Porta ac consectetur ac</li>
 				<li id='list5' class="list-group-item drag">Vestibulum at eros</li>
+				
+				
+				
 			</ul>
 			
     </div>
@@ -203,6 +207,8 @@
     <script src="/scimappr/build/assets/pdf.js"></script>
 	<script>
 	
+	"use strict";
+	
 	(function ($) {
 	
 	// ============================================================================================= //
@@ -212,8 +218,6 @@
 	
 		// Main Caller
 		window.onload = drag_drop();
-		
-		
 	
 		function drag_drop() {
 			var counter = 0;
@@ -235,7 +239,9 @@
 				stop: function (ev, ui) {	
 				var pos = $(ui.helper).offset();
 				objName = "#clonediv" + counter
-				console.log(ui.helper.end().find('id'));
+				//console.log(ui.helper);
+				//var test = ui.helper;
+				//console.log($(ui.helper.draggable.context.id));
 				$(objName).css({
 					"left": pos.left,
 					"top": pos.top
@@ -247,9 +253,10 @@
 			
 			$(".drop").droppable({
 				drop: function (ev, ui) {
-						
+						//console.log(ui);
+						//console.log(ev);
 						var selected_node = _jm.get_selected_node(); // as parent of new node
-						console.log(selected_node);
+						//console.log(selected_node);
 						if(!selected_node){prompt_info('please select a node first.');return;}
 
 						var nodeid = jsMind.util.uuid.newid();
@@ -274,8 +281,13 @@
 	
 	//populateDir().then(function()
 	
-	var dir = "/labcourse/scimappr/";
+	var dir = "/labcourse/doc/";
 	var listFile = [];
+	 var files,
+      file,
+      extension,
+      input = document.getElementById("fileURL"),
+      mindmap = {};
 	
 	var options = {
 			container:'jsmind_container',
@@ -294,18 +306,32 @@
       }
     }
 	
-    var jm = new jsMind(options);
+    //var jm = new jsMind(options);
+	
+	var mainRefreshPdf = function() {
+		populateDir().then(function(v){
+			listFile = v;
+		Promise.all(listFile).then(function(v) {
+				for(var k in listFile) {
+				loadPDF(listFile[k], listFile[k].replace("http://", "").replace("localhost/", ""))
+				}
+			});
+		});
+	}
 	
 	var populateDir = function() {
+	
 		return new Promise(function(resolve, reject) {
 			$.ajax({
             //This will retrieve the contents of the folder if the folder is configured as 'browsable'
             url: dir,
             success: function (data) {
+				console.log("test")
                //List all pdfs file names in the page
                $(data).find("a:contains(" + ".pdf" + ")").each(function () {
-				var filename = this.href.replace("http://", "").replace("localhost/", "");
-				listFile.push(filename);					
+				var filename = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/","doc/");
+				listFile.push(filename);
+				console.log(filename)
 				resolve (listFile);
                });
              }
@@ -358,7 +384,7 @@
           sendData({ fileName: fileName, data: items });
         }).then(function () {
           // Re-render Mindmap after processing every PDF
-          jm.show(mind);
+          //jm.show(mind);
         });
       });
     }	
@@ -370,13 +396,27 @@
     };
 	
 	var sendData = function (data) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", '/sendData', false);
+      //var xhr = new XMLHttpRequest();
+      //xhr.open("POST", '/sendData', false);
 
       // Send the proper header information along with the request
-      xhr.setRequestHeader("Content-type", "application/json");
+     // xhr.setRequestHeader("Content-type", "application/json");
 
-      xhr.send(JSON.stringify(data));
+      //xhr.send(JSON.stringify(data));
+	  //console.log(data);
+	  
+	  var classType = "drag";
+	  var classItem = "list-group-item";
+	  
+	  $("#loading-data").remove();
+	  //console.log(data.data.length);
+	  for(var m = 0; m < data.data.length; m++) {
+		//console.log(data.data[m].id);
+	  //<li id='list2' class="list-group-item drag">Dapibus ac facilisis in</li>
+	  
+		$(".list-group").append("<li id=" + data.data[m].id + " " + "class=" + classType + " " + classItem + ">" + data.data[m].topic + "</li>");
+	  }
+	  
     }
 	
 	function myCloseConfirmation() {
@@ -392,6 +432,8 @@
       else 
            return false; 
 	}
+	
+	//mainRefreshPdf();
 	
 	</script>
 
