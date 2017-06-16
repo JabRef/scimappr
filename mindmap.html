@@ -226,17 +226,14 @@
 			
 			$(".drop").droppable({
 				drop: function (ev, ui) {
-						//console.log(ui);
-						//console.log(ev);
-						//console.log(ui.helper.prevObject.context.innerHTML);
-						var selected_node = _jm.get_selected_node(); // as parent of new node
-						//console.log(selected_node);
-						if(!selected_node){prompt_info('please select a node first.');return;}
-						//var nodeid = jsMind.util.uuid.newid();
+						var selected_node = _jm.get_selected_node(); // select node when mouseover
+						if(!selected_node){
+							prompt_info('please select a node first.');
+							return;
+						}
 						var nodeid = ui.helper.prevObject.context.id;
 						var topic = ui.helper.prevObject.context.innerHTML;
 						var node = _jm.add_node(selected_node, nodeid, topic);
-					
 					}
 			});	
 		}
@@ -253,11 +250,9 @@
     PDFJS.disableWorker = true;
     PDFJS.disableRange = true;
 	
-	//populateDir().then(function()
-	
 	var dir = "/scimappr/doc/";
 	var listFile = [];
-	 var files,
+	var files,
       file,
       extension,
       input = document.getElementById("fileURL"),
@@ -268,7 +263,8 @@
 			editable:true,
 			theme:'orange'
 	};
-    var mind = {
+    
+	var mind = {
       meta: {
         "name":"jsMind remote",
         "author":"hizzgdev@163.com",
@@ -280,8 +276,8 @@
       }
     }
 	
-    //var jm = new jsMind(options);
-	
+    
+	// When PDF is refreshed
 	var mainRefreshPdf = function() {
 		populateDir().then(function(v){
 			listFile = v;
@@ -293,31 +289,33 @@
 		});
 	}
 	
-	var populateDir = function() {
 	
+	// Keep the records of PDF File in a folder
+	var populateDir = function() {
 		return new Promise(function(resolve, reject) {
 			var xhr = $.ajax({
             //This will retrieve the contents of the folder if the folder is configured as 'browsable'
+			type:"GET",
             url: dir,
             success: function (data) {
+			
+				//console.log(xhr);
 				
                //List all pdfs file names in the page
-               $(data).find("a:contains(" + ".pdf" + ")").each(function () {
-				var filename = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/","doc/");
-				console.log(xhr);
-				<!-- xhr.getResponseHeader = function(a) {
-					//console.log(a.Scopes);
-				//}
-				console.log(xhr.getResponseHeader("Location"));
-				listFile.push(filename);
-					//console.log(filename);
-				resolve (listFile);
-               });
-             }
+               $(data).find("a:contains(" + ".pdf" + ")").each(function (e) {
+					var filename = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/","doc/");
+					getLastMod("/scimappr/" + filename, function(v) {
+						console.log(v);
+					});
+					listFile.push(filename);
+					resolve (listFile);
+				});
+            }
             });
 		});
 	}
-		
+	
+	// get the annotations in a PDF File	
 	var loadPDF = function (filePath, fileName) {
       PDFJS.getDocument(filePath).then(function (pdf) {
         var promises = [], promise;
@@ -337,7 +335,6 @@
               })
               .forEach(function(annotation) {
 			  if((annotation.contents != "") && (annotation.subtype == "Popup")) {
-			  //console.log(fileName);
 			  items.push({
                   id: getHashFunction(fileName + " " + annotation.contents),
                   subtype: annotation.subtype,
@@ -354,27 +351,19 @@
           mindmapNode.children = items;
           // Add the Node to the Mindmap
           mind.data.children.push(mindmapNode);
-		  //console.log(JSON.stringify(mind));
           sendData({ fileName: fileName, data: items });
         })
       });
     }	
 	
-	
-	var getRandomString = function (num) {
-      num = num || 6;
-      return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, num);
-    };
-	
 	var sendData = function (data) {
-	  
 	  
 	  $("#loading-data").remove();
 	  $("#drag").remove();
 	  for(var m = 0; m < data.data.length; m++) {
 	  
 	  
-	  // Making JSON File
+	  // Make JSON File
 		var json_listmaker = {
 				data: {
 					id: data.data[m].id, topic: data.data[m].topic
@@ -386,8 +375,6 @@
 		// Parse JSON File back
 		
 		var objekt = JSON.parse(json_result);
-		
-		//console.log(objekt);
 		
 		var html_dynamic = "<li id=" + objekt.data.id +  ">" + objekt.data.topic + "</li>";
 		
@@ -419,12 +406,53 @@
 	  
     }
 	
+	// generate random string
+	var getRandomString = function (num) {
+      num = num || 6;
+      return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, num);
+    };
+	
+	// generate Hash function for Id 
 	var getHashFunction = function (input) {
 		var hash = hex_md5("string");
 		var hmac = hex_hmac_md5("19", input);
 		return hmac;
-
 	}
+	
+	// generate last modified date & time
+	var getLastMod = function(url, cb) {
+		var req = new XMLHttpRequest();
+		req.open("GET", url);
+		req.send(null);
+		req.addEventListener("load", function() {
+			cb(req.getResponseHeader("Last-Modified"));
+		}, false);
+	}
+	
+	var setDraggable = function(input) {
+		var counter = 0;
+		var objName = "";
+		input.draggable({
+				helper: 'clone',
+				containment:'frame',
+				opacity:'0.5',
+				revert: 'invalid',
+				appendTo: 'body',
+				stop: function (ev, ui) {	
+				var pos = $(ui.helper).offset();
+				objName = "#clonediv"
+				$(objName).css({
+					"left": pos.left,
+					"top": pos.top
+				});
+				$(objName).removeClass("drag");
+			}
+		});
+		
+		return input;
+	
+	}
+
 	
 	function myCloseConfirmation() {
 		 if(confirm('are you sure to close?')) 
@@ -439,8 +467,6 @@
       else 
            return false; 
 	}
-	
-	//mainRefreshPdf();
 	
 	</script>
 </body>
