@@ -5,7 +5,7 @@
  -->    <title>Scimappr</title>
 	
 	<!-- <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script> -->
-	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script> -->
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
 	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
 	<!-- <link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.7.1/themes/base/jquery-ui.css"/>-->
 	<link type="text/css" rel="stylesheet" href='/scimappr/build/assets/jsmind.css'/>
@@ -360,6 +360,8 @@
 	  
 	  $("#loading-data").remove();
 	  $("#drag").remove();
+	  var file_title = "<li style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + data.fileName + "</li>";
+	  $(file_title).appendTo(".list-group");
 	  for(var m = 0; m < data.data.length; m++) {
 	  
 	  
@@ -395,6 +397,7 @@
 					"top": pos.top
 				});
 				$(objName).removeClass("drag");
+				$('#'+ev.target.id).hide();
 			}
 			});
 		

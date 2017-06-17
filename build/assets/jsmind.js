@@ -2793,6 +2793,8 @@
         },
         handle_delnode:function(_jm,e){
             var selected_node = _jm.get_selected_node();
+            $('#'+selected_node.id).show();
+
             if(!!selected_node && !selected_node.isroot){
                 _jm.select_node(selected_node.parent);
                 _jm.remove_node(selected_node);
