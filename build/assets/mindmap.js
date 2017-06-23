@@ -5,7 +5,16 @@
             theme:'greensea',
             editable:true
         }
-        _jm = jsMind.show(options);
+        var baseMindmap = {
+            "meta":{
+                "name":"jsMind Example",
+                "version":"0.2"
+            },
+            "format":"node_tree",
+            "data":{"id":"root","topic":"jsMind","children": [] }
+        };
+        var mindmap = JSON.parse(window.localStorage.getItem('json_data')) || baseMindmap;
+        _jm = jsMind.show(options, mindmap);
         // _jm = jsMind.show(options,mind);
     }
 
