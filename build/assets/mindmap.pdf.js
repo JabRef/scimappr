@@ -97,8 +97,8 @@
 
 	// generate Hash function for Id
 	var getHashFunction = function (input) {
-		var hash = hex_md5("string");
-		var hmac = hex_hmac_md5("19", input);
+		var hash = hex_sha1("string");
+		var hmac = hex_hmac_sha1("19", input);
 		return hmac;
 	}
 
