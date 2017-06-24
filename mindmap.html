@@ -1,13 +1,9 @@
 <html>
 <head>
-    <!-- <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
- -->    <title>Scimappr</title>
+    <title>Scimappr</title>
 	
-	<!-- <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script> -->
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
 	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
-	<!-- <link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.7.1/themes/base/jquery-ui.css"/>-->
 	<link type="text/css" rel="stylesheet" href='/scimappr/build/assets/jsmind.css'/>
 	
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
@@ -96,7 +92,7 @@
  </style>
 </head>
  
-<body>	
+<body onload="drag_drop()">	
 <div id="header" class="navbar navbar-default navbar-fixed-top">
     <div class="navbar-header">
         <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target=".navbar-collapse">
@@ -157,11 +153,6 @@
 <div id="wrapper">
 	<div id="sidebar-wrapper" class="col-md-2">
 			<ul class="list-group">
-				<!-- <li id='list1' class="list-group-item drag">Cras justo odio</li>
-				<li id='list2' class="list-group-item drag">Dapibus ac facilisis in</li>
-				<li id='list3' class="list-group-item drag">Morbi leo risus</li>
-				<li id='list4' class="list-group-item drag">Porta ac consectetur ac</li>
-				<li id='list5' class="list-group-item drag">Vestibulum at eros</li> -->
 				
 			</ul>
 			
@@ -174,297 +165,24 @@
     </div>  
 </div>
 <div id="push"></div>
+
+
+	<!-- Latest compiled and minified JavaScript -->
+	<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+	
+	<!-- JSMind Code Section -->
 	<script type="text/javascript" src='/scimappr/build/assets/jsmind.js'></script>
 	<script type="text/javascript" src='/scimappr/build/assets/jsmind.draggable.js'></script>
 	<script type="text/javascript" src='/scimappr/build/assets/jsmind.screenshot.js'></script>
-	<script type="text/javascript" src='/scimappr/build/assets/mindmap.js'></script>
-	<script type="text/javascript" src='/scimappr/build/assets/md5-min.js'></script>
-	<!-- Latest compiled and minified JavaScript -->
-	<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-    <script src="/scimappr/build/assets/pdf.js"></script>
-	<script>
 	
-	"use strict";
-	
-	(function ($) {
-	
-	// ============================================================================================= //
-	// JQuery Section
-	// ============================================================================================= //
-	
-		// Main Caller
-		window.onload = drag_drop();
-	
-		function drag_drop() {
-			var counter = 0;
-			var objName = "";
-			var fileName = "/scimappr/doc/example.pdf"
-			var options = {
-				container:'jsmind_container',
-				editable:true,
-				theme:'orange'
-			};
-			
-			
-			$( ".drag" ).draggable({
-				helper: 'clone',
-				containment:'frame',
-				opacity:'0.5',
-				revert: 'invalid',
-				appendTo: 'body',
-				stop: function (ev, ui) {	
-				var pos = $(ui.helper).offset();
-				objName = "#clonediv" + counter
-				$(objName).css({
-					"left": pos.left,
-					"top": pos.top
-				});
-				$(objName).removeClass("drag");
-			}
-			});
-			
-			
-			$(".drop").droppable({
-				drop: function (ev, ui) {
-						var selected_node = _jm.get_selected_node(); // select node when mouseover
-						if(!selected_node){
-							prompt_info('please select a node first.');
-							return;
-						}
-						var nodeid = ui.helper.prevObject.context.id;
-						var topic = ui.helper.prevObject.context.innerHTML;
-						var node = _jm.add_node(selected_node, nodeid, topic);
-					}
-			});	
-		}
+	<!-- MindMap Main Code Section -->
+	<script type="text/javascript" src='/scimappr/build/assets/mindmap.js'></script> <!-- For mindmap in general Purposes -->
+	<script type="text/javascript" src="/scimappr/build/assets/mindmap.gui.js"></script> <!-- For GUI Purposes -->
 		
+	<script type="text/javascript" src="/scimappr/build/assets/pdf.js"></script> <!-- Main Code of PDF.js -->
+	<script type="text/javascript" src="/scimappr/build/assets/mindmap.pdf.js"></script> <!-- For PDF Parsing Purposes -->
 	
-	})(jQuery)
+	<script type="text/javascript" src='/scimappr/build/assets/md5-min.js'></script> <!-- For PDF ID Using Hash Purposes -->
 	
-	// ============================================================================================= //
-	// Function Section
-	// ============================================================================================= //
-	
-	//'use strict';
-	PDFJS.workerSrc = '/scimappr/build/assets/pdf.worker.js';
-    PDFJS.disableWorker = true;
-    PDFJS.disableRange = true;
-	
-	var dir = "/scimappr/doc/";
-	var listFile = [];
-	var files,
-      file,
-      extension,
-      input = document.getElementById("fileURL"),
-      mindmap = {};
-
-
-	// When PDF is refreshed
-	var mainRefreshPdf = function() {
-		populateDir().then(function(v){
-			listFile = v;
-		Promise.all(listFile).then(function(v) {
-				for(var k in listFile) {
-				loadPDF(listFile[k], listFile[k].replace("http://", "").replace("localhost/", ""))
-				}
-			});
-		});
-	}
-	
-	
-	// Keep the records of PDF File in a folder
-	var populateDir = function() {
-		return new Promise(function(resolve, reject) {
-			var xhr = $.ajax({
-            //This will retrieve the contents of the folder if the folder is configured as 'browsable'
-			type:"GET",
-            url: dir,
-            success: function (data) {
-			
-				//console.log(xhr);
-				
-               //List all pdfs file names in the page
-               $(data).find("a:contains(" + ".pdf" + ")").each(function (e) {
-					var filename = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/","doc/");
-					getLastMod("/scimappr/" + filename, function(v) {
-						console.log(v);
-					});
-					listFile.push(filename);
-					resolve (listFile);
-				});
-            }
-            });
-		});
-	}
-	
-	// get the annotations in a PDF File	
-	var loadPDF = function (filePath, fileName) {
-      PDFJS.getDocument(filePath).then(function (pdf) {
-        var promises = [], promise;
-        for (var i = 1; i < pdf.numPages; i++) {
-          promise = pdf.getPage(i).then(function (page) {
-            return page.getAnnotations();
-          });
-          promises.push(promise);
-        }
-        var ignoreList = ['Link'];
-        Promise.all(promises).then(function (pages) {
-          var items = [];
-          pages.forEach(function(annotations) {
-            annotations
-              .filter(function (annotation) {
-                return !ignoreList.includes(annotation.subtype)
-              })
-              .forEach(function(annotation) {
-			  if((annotation.contents != "") && (annotation.subtype == "Popup")) {
-			  items.push({
-                  id: getHashFunction(fileName + " " + annotation.contents),
-                  subtype: annotation.subtype,
-                  title: annotation.title,
-                  topic: annotation.contents
-                });
-			  }
-
-              });
-            });
-          sendData({ fileName: fileName, data: items });
-        })
-      });
-    }
-
-	var sendData = function (data) {
-
-	  $("#loading-data").remove();
-	  $("#drag").remove();
-	  var file_title = "<li style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + data.fileName + "</li>";
-	  $(file_title).appendTo(".list-group");
-	  for(var m = 0; m < data.data.length; m++) {
-
-
-	  // Make JSON File
-		var json_listmaker = {
-				data: {
-					id: data.data[m].id, topic: data.data[m].topic
-				}
-			}
-
-		var json_result = JSON.stringify(json_listmaker);
-
-		// Parse JSON File back
-
-		var objekt = JSON.parse(json_result);
-
-		var html_dynamic = "<li id=" + objekt.data.id +  ">" + objekt.data.topic + "</li>";
-
-		var counter = 0;
-		var objName = "";
-
-		$(html_dynamic).appendTo(".list-group").draggable({
-				helper: 'clone',
-				containment:'frame',
-				opacity:'0.5',
-				revert: 'invalid',
-				appendTo: 'body',
-				stop: function (ev, ui) {
-				var pos = $(ui.helper).offset();
-				objName = "#clonediv"
-				$(objName).css({
-					"left": pos.left,
-					"top": pos.top
-				});
-				$(objName).removeClass("drag");
-			}
-			});
-
-		document.getElementById(objekt.data.id).className += "drag list-group-item";
-		document.getElementById(objekt.data.id).style += "z-index: 5";
-
-		// Hide nodes that are already in the mindmap
-	  	if (_jm.mind.nodes[objekt.data.id]) {
-	  		$('#'+objekt.data.id).hide();
-	  	}
-	  }
-
-    }
-
-	// generate random string
-	var getRandomString = function (num) {
-      num = num || 6;
-      return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, num);
-    };
-
-	// generate Hash function for Id
-	var getHashFunction = function (input) {
-		var hash = hex_md5("string");
-		var hmac = hex_hmac_md5("19", input);
-		return hmac;
-	}
-
-	// generate last modified date & time
-	var getLastMod = function(url, cb) {
-		var req = new XMLHttpRequest();
-		req.open("GET", url);
-		req.send(null);
-		req.addEventListener("load", function() {
-			cb(req.getResponseHeader("Last-Modified"));
-		}, false);
-	}
-	
-	var setDraggable = function(input) {
-		var counter = 0;
-		var objName = "";
-		input.draggable({
-				helper: 'clone',
-				containment:'frame',
-				opacity:'0.5',
-				revert: 'invalid',
-				appendTo: 'body',
-				stop: function (ev, ui) {	
-				var pos = $(ui.helper).offset();
-				objName = "#clonediv"
-				$(objName).css({
-					"left": pos.left,
-					"top": pos.top
-				});
-				$(objName).removeClass("drag");
-			}
-		});
-
-		return input;
-
-	}
-
-	// Update the annotation panel on each MindMap event
-	_jm.add_event_listener(function () {
-		var mindmap = _jm.get_data();
-		var nodes = $('.list-group-item').get();
-		nodes.forEach(function (node) {
-			if (_jm.mind.nodes[node.id]) {
-				$('#'+node.id).hide();
-			} else {
-				$('#'+node.id).show();
-			}
-		});
-
-		// Update localStorage with the current mindmap data on every update
-		window.localStorage.setItem('json_data', JSON.stringify(_jm.get_data()));
-	});
-
-
-	function myCloseConfirmation() {
-		 if(confirm('are you sure to close?'))
-           return true;
-      else
-           return false;
-	}
-
-	function myExitConfirmation() {
-		 if(confirm('are you sure to exit?'))
-           return true;
-      else
-           return false;
-	}
-
-	</script>
 </body>
 </html>
