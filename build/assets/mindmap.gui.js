@@ -81,8 +81,30 @@ var setDynamicHtml = function(objekt) {
 	
 }	
 
+var actionCopy = function () {
+	document.querySelector('#contextMenu').dataset.topic = document.querySelector('#contextMenu .actionCopy').dataset.topic;
+	$('#contextMenu').hide();
+};
+
+var actionPaste = function () {
+	var selected_node = _jm.get_selected_node(); // select node when mouseover
+	var topic = document.querySelector('#contextMenu').dataset.topic;
+	_jm.add_node(selected_node, Date.now(), topic);
+	$('#contextMenu').hide();
+};
+
 // Update the annotation panel on each MindMap event
 _jm.add_event_listener(function () {
+	document.querySelectorAll('jmnode').forEach(function(each) {
+		// Not efficient, need to figure out another way to do this. 
+		each.oncontextmenu = function (e) {
+			e.preventDefault();
+			$('#contextMenu').show();
+			$('#contextMenu').css({ position: 'absolute', marginLeft: e.clientX, marginTop: e.clientY-45 });
+			document.querySelector('#contextMenu .actionCopy').dataset.topic = e.target.innerHTML;
+		}
+	});
+
 		var mindmap = _jm.get_data();
 		var nodes = $('.list-group-item').get();
 		nodes.forEach(function (node) {
