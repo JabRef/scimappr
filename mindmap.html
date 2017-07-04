@@ -99,7 +99,7 @@
  </style>
 </head>
  
-<body onload="drag_drop()">	
+<body onload="programCaller('init')">	
 <div id="header" class="navbar navbar-default navbar-fixed-top">
     <div class="navbar-header">
         <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target=".navbar-collapse">
@@ -125,8 +125,9 @@
 			<li>
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">PDF<b class="caret"></b></a>
 				<ul class="dropdown-menu">
-					<li><a href="javascript:mainRefreshPdf()">Refresh PDFs</a></li>
+					<li><a href="javascript:programCaller('refresh')">Refresh PDFs</a></li>
 					<li><a href="javascript:prompt_info('under construction')">Add PDF</a></li>
+                    <li><a href="javascript:programCaller('refreshAnnotation')">Refresh Annotation</a></li>
 					
 				</ul>
             </li>
@@ -190,12 +191,13 @@
 	<script type="text/javascript" src='/scimappr/build/assets/jsmind.screenshot.js'></script>
 	
 	<!-- MindMap Main Code Section -->
-	<script type="text/javascript" src='/scimappr/build/assets/mindmap.js'></script> <!-- For mindmap in general Purposes -->
-	<script type="text/javascript" src="/scimappr/build/assets/mindmap.gui.js"></script> <!-- For GUI Purposes -->
-		
+	<script type="text/javascript" src='/scimappr/build/assets/mindmap.js'></script><!-- For mindmap in general Purposes -->
+	<script type="text/javascript" src='/scimappr/build/assets/mindmap.main.js'></script>
+	<!-- <script type="text/javascript" src="/scimappr/build/assets/mindmap.gui.js"></script> <!-- For GUI Purposes -->
+ -->		
 	<script type="text/javascript" src="/scimappr/build/assets/pdf.js"></script> <!-- Main Code of PDF.js -->
-	<script type="text/javascript" src="/scimappr/build/assets/mindmap.pdf.js"></script> <!-- For PDF Parsing Purposes -->
-	
+	<!-- <script type="text/javascript" src="/scimappr/build/assets/mindmap.pdf.js"></script> <!-- For PDF Parsing Purposes -->
+ -->	
 	<script type="text/javascript" src='/scimappr/build/assets/md5-min.js'></script> <!-- For PDF ID Using Hash Purposes -->
     <script type="text/javascript" src='/scimappr/build/assets/sha1-min.js'></script> <!-- For PDF ID Using  sha1 Hash Purposes -->
 	
