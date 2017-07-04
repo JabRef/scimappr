@@ -22,6 +22,13 @@
     left: 0;
     display: inline-block;
 }
+#contextMenu li {
+    padding: 5px 10px;
+}
+#contextMenu li:hover {
+    cursor: pointer;
+    background-color: #f5f5f5;
+}
 <!-- #main-wrapper {
     height: 100%;
     overflow-y: auto;
@@ -165,7 +172,14 @@
     </div>  
 </div>
 <div id="push"></div>
-
+<div id="contextMenu" style="display: none; z-index: 200">
+    <div class="dropdown open">
+        <ul class="dropdown-menu">
+            <li class="actionCopy" onClick="actionCopy()">Copy</li>
+            <li onClick="actionPaste()">Paste</li>
+        </ul>
+    </div>
+</div>
 
 	<!-- Latest compiled and minified JavaScript -->
 	<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
@@ -183,6 +197,7 @@
 	<script type="text/javascript" src="/scimappr/build/assets/mindmap.pdf.js"></script> <!-- For PDF Parsing Purposes -->
 	
 	<script type="text/javascript" src='/scimappr/build/assets/md5-min.js'></script> <!-- For PDF ID Using Hash Purposes -->
+    <script type="text/javascript" src='/scimappr/build/assets/sha1-min.js'></script> <!-- For PDF ID Using  sha1 Hash Purposes -->
 	
 </body>
 </html>
