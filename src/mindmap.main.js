@@ -94,12 +94,11 @@ var ListPdf = (function () {
     };
     ListPdf.prototype.getModDate = function (util, listFile) {
         var counter = 0;
-        var promise = [];
+        var modDateList = [];
         for (var x = 0; x < listFile.length; x++) {
-            promise.push(util.getLastMod(listFile[x]));
+            modDateList.push(util.getLastMod(listFile[x]));
         }
-        var resolvedPromise = Promise.all(promise);
-        return resolvedPromise;
+        return modDateList;
     };
     ListPdf.prototype.getLastModDate = function (idx) {
         return this.lastModDatePdfFiles[idx];
@@ -125,12 +124,12 @@ var ListPdf = (function () {
         return this.directory;
     };
     ListPdf.prototype.chkDateChange = function (util, list) {
-        var newLastMod;
-        var listChange = null;
+        var newLastMod = [];
+        var listChange = [];
         var stsChange = false;
         var indexChange = 0;
         for (var x = 0; x < list.length; x++) {
-            newLastMod[x] = util.lastModDatePdfFiles(list[x]);
+            newLastMod[x] = util.getLastMod(list[x]);
         }
         for (var x = 0; x < list.length; x++) {
             if (newLastMod[x] != this.lastModDatePdfFiles[x]) {
@@ -139,7 +138,7 @@ var ListPdf = (function () {
                 indexChange++;
             }
         }
-        return [stsChange, listChange, indexChange + 1];
+        return [stsChange, listChange, indexChange];
     };
     ListPdf.prototype.getPdfFiles = function (inputURL) {
         var process = new Promise(function (resolve, reject) {
@@ -163,7 +162,10 @@ var ListPdf = (function () {
     };
     ListPdf.prototype.getPdfFilesPage = function (filePath, fileName) {
         var processPage = new Promise(function (resolve, reject) {
-            PDFJS.getDocument(filePath).then(function (pdf) {
+            // Adding timestamp forces the browser to always trigger a 
+            // new request for the PDF file. This is a way to prevent 
+            // the browser to use the cached version of the file 
+            PDFJS.getDocument(filePath + "?" + Date.now()).then(function (pdf) {
                 var promises = [], promise;
                 for (var i = 1; i < pdf.numPages; i++) {
                     promise = pdf.getPage(i).then(function (page) {
@@ -302,15 +304,17 @@ var Utils = (function () {
         return hmac;
     };
     Utils.prototype.getLastMod = function (url) {
-        var promise = new Promise(function (resolve, reject) {
-            var req = new XMLHttpRequest();
-            req.open("GET", url);
-            req.send(null);
-            req.addEventListener("load", function () {
-                resolve(req.getResponseHeader("Last-Modified"));
-            }, false);
+        var lastModifiedDate;
+        var xhr = $.ajax({
+            type: "GET",
+            cache: false,
+            async: false,
+            url: url,
+            success: function (data, status, res) {
+                lastModifiedDate = res.getResponseHeader("Last-Modified");
+            }
         });
-        return promise;
+        return lastModifiedDate;
     };
     Utils.prototype.getCompareLastMod = function (lstMod1, lstMod2) {
         var stsResult = false;
@@ -320,6 +324,23 @@ var Utils = (function () {
         return stsResult;
     };
     return Utils;
+}());
+var contextMenu = (function () {
+    function contextMenu() {
+    }
+    contextMenu.actionCopy = function () {
+        document.querySelector('#clipBoard').innerHTML = document.querySelector('#tempBoard').innerHTML;
+        $('#contextMenu').hide();
+    };
+    ;
+    contextMenu.actionPaste = function () {
+        var selected_node = _jm.get_selected_node(); // select node when mouseover
+        var topic = document.querySelector('#clipBoard').innerHTML;
+        _jm.add_node(selected_node, Date.now(), topic);
+        $('#contextMenu').hide();
+    };
+    ;
+    return contextMenu;
 }());
 var GuiSideBar = (function () {
     function GuiSideBar() {
@@ -337,6 +358,9 @@ var GuiSideBar = (function () {
         $(titleFile).appendTo(".list-group");
         this.setDynamicHtmlObject(objekt);
     };
+    GuiSideBar.prototype.resetSidebar = function () {
+        $(".list-group").empty();
+    };
     GuiSideBar.prototype.setGuiOnAppend = function (id, topic) {
         var node = new Nodes(id, topic);
         if (this.checkJsmindNode(node.getId()) == false) {
@@ -346,6 +370,16 @@ var GuiSideBar = (function () {
     GuiSideBar.prototype.setJsmindListener = function () {
         // Update the annotation panel on each MindMap event
         _jm.add_event_listener(function () {
+            var jmnodes = document.querySelectorAll('jmnode');
+            for (var i = 0; i < jmnodes.length; i++) {
+                // Not efficient, need to figure out another way to do this. 
+                jmnodes[i].oncontextmenu = function (e) {
+                    e.preventDefault();
+                    $('#contextMenu').show();
+                    $('#contextMenu').css({ position: 'absolute', marginLeft: e.clientX, marginTop: e.clientY - 45 });
+                    document.querySelector('#tempBoard').innerHTML = e.target.innerHTML;
+                };
+            }
             var mindmap = _jm.get_data();
             var nodes = $('.list-group-item').get();
             nodes.forEach(function (node) {
@@ -383,7 +417,11 @@ var GuiSideBar = (function () {
     };
     GuiSideBar.prototype.checkJsmindNode = function (id) {
         var checkResult = false;
-        if (_jm.mind.nodes[id]) {
+        // Get the IDs of all annotations in the sidebar
+        var nodesInSidebar = $('.list-group-item').get().map(function (e) { return e.id; });
+        // If the annotation is in the sidebar, it should stay as it is
+        // Also, if the annotation is in jsMind, its state should also be as it is  
+        if (nodesInSidebar.indexOf(id) != -1 || _jm.mind.nodes[id]) {
             checkResult = true;
         }
         return checkResult;
@@ -393,24 +431,38 @@ var GuiSideBar = (function () {
 // ========================================================= //
 // Function Section
 // ========================================================= //
+var node;
+var dir = "/scimappr/doc";
+var listPdf = new ListPdf(new Array, new Array, dir);
+var listAnnotation = new ListAnnotations(dir);
+var util = new Utils();
 function programCaller(data) {
-    var node;
     switch (data) {
         case "init":
-            var dir = "/scimappr/doc";
-            var listPdf = new ListPdf(new Array, new Array, dir);
-            var util = new Utils();
             node = new Nodes("", "");
             $(".drag").draggable(node.setDraggable());
             $(".drop").droppable(node.setDroppable());
+            // Render existing MindMap
+            var options = {
+                container: 'jsmind_container',
+                theme: 'greensea',
+                editable: true
+            };
+            var baseMindmap = {
+                "meta": {
+                    "name": "jsMind Example",
+                    "version": "0.2"
+                },
+                "format": "node_tree",
+                "data": { "id": "root", "topic": "jsMind", "children": [] }
+            };
+            var mindmap = JSON.parse(window.localStorage.getItem('json_data')) || baseMindmap;
+            _jm = jsMind.show(options, mindmap);
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
             Promise.all([pdfProcess]).then(function (response) {
                 listPdf.setListPdfFile(response[0]);
-                var promises = listPdf.getModDate(util, response[0]);
-                Promise.all([promises]).then(function (responsePromise) {
-                    listPdf.setLastModDate(responsePromise[0]);
-                });
+                listPdf.setLastModDate(listPdf.getModDate(util, response[0]));
             });
             console.log(listPdf.getListPdf());
             console.log(listPdf.getLastMod());
@@ -419,21 +471,18 @@ function programCaller(data) {
             break;
         case "refresh":
             // Call Constructors for some classes
-            var listAnnotation = new ListAnnotations(dir);
             var guiSideBar = new GuiSideBar();
             var fileName;
             var callBackCounter = 0;
-            var dir = "/scimappr/doc";
-            var listPdf = new ListPdf(new Array, new Array, dir);
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
+            guiSideBar.resetSidebar();
             // get annotation's lists
             Promise.all([pdfProcess]).then(function (response) {
                 listPdf.setListPdfFile(response[0]);
-                //listPdf.setLastModDate(util, response[0])
                 callBackCounter = listPdf.getCount();
                 for (var i = 0; i < listPdf.getCount(); i++) {
-                    var pdfPages = listPdf.getPdfPage(listPdf.getListPdfFile(i), listPdf.getListPdfFile(i).replace("http://", "").replace("localhost/", ""));
+                    var pdfPages = listPdf.getPdfPage(listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
                     Promise.all([pdfPages]).then(function (responsePages) {
                         callBackCounter--;
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(callBackCounter));
@@ -446,18 +495,21 @@ function programCaller(data) {
             });
             break;
         case "refreshAnnotation":
+            var guiSideBar = new GuiSideBar();
+            var callBackCounter = 0;
             var change = listPdf.chkDateChange(util, listPdf.getListPdf());
             var listChange = change[1];
             var numChange = change[2];
             if (change[0] == true) {
+                callBackCounter = numChange;
                 for (var i = 0; i < numChange; i++) {
-                    var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i].replace("http://", "").replace("localhost/", ""));
+                    var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i]);
                     Promise.all([pdfPages]).then(function (responsePages) {
                         callBackCounter--;
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(callBackCounter));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function (responseResult) {
-                            var resultJson = responseResult[2];
-                            guiSideBar.setGuiOnAppend(node.getid(), node.getTopic());
+                            var newNodes = JSON.parse(responseResult[2]);
+                            guiSideBar.setDynamicHtmlObject(newNodes);
                         });
                     });
                 }

@@ -173,11 +173,13 @@
     </div>  
 </div>
 <div id="push"></div>
+<div id="tempBoard" style="display: none"></div>
+<div id="clipBoard" style="display: none"></div>
 <div id="contextMenu" style="display: none; z-index: 200">
     <div class="dropdown open">
         <ul class="dropdown-menu">
-            <li class="actionCopy" onClick="actionCopy()">Copy</li>
-            <li onClick="actionPaste()">Paste</li>
+            <li class="actionCopy" onClick="contextMenu.actionCopy()">Copy</li>
+            <li onClick="contextMenu.actionPaste()">Paste</li>
         </ul>
     </div>
 </div>

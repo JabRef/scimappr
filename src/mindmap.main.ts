@@ -5,9 +5,11 @@ declare var PDFJS:any;
 declare var Promise:any;
 declare var $:any;
 declare var hex_md5:any;
+
 declare var hex_hmac_md5:any;
 declare function prompt_info(message:string): any;
 declare var _jm: {get_selected_node: Function, select_node: Function, add_node: Function, mind:{nodes:Function}, add_event_listener:Function, get_data:Function};
+declare var jsMind:any;
 
 // ========================================================= //
 // Class Section
@@ -115,12 +117,11 @@ class ListPdf {
 
     public getModDate(util, listFile:string[]) {
         var counter:number = 0;
-        var promise = [];
+        var modDateList = [];
         for (var x = 0; x < listFile.length; x++) {
-            promise.push(util.getLastMod(listFile[x]));
+            modDateList.push(util.getLastMod(listFile[x]));
         }
-        var resolvedPromise = Promise.all(promise)
-        return resolvedPromise;
+        return modDateList;
     }
 
     public getLastModDate(idx:number):string {
@@ -154,12 +155,12 @@ class ListPdf {
     }
 
     public chkDateChange(util, list:string[]):any {
-        var newLastMod: string[];
-        var listChange: string[] = null;
+        var newLastMod: string[] = [];
+        var listChange: string[] = [];
         var stsChange: boolean = false;
         var indexChange:number = 0;
         for(var x = 0; x < list.length; x++) {
-           newLastMod[x] = util.lastModDatePdfFiles(list[x]);
+           newLastMod[x] = util.getLastMod(list[x]);
         }
         for(var x = 0; x < list.length; x++) {
             if(newLastMod[x] != this.lastModDatePdfFiles[x]) {
@@ -169,7 +170,7 @@ class ListPdf {
             }
         }
 
-        return [stsChange, listChange, indexChange+1];
+        return [stsChange, listChange, indexChange];
     }
 
     private getPdfFiles(inputURL:string):any {
@@ -198,7 +199,10 @@ class ListPdf {
     private getPdfFilesPage(filePath:string, fileName:string):any {
 
        var processPage = new Promise(function(resolve, reject) {
-        PDFJS.getDocument(filePath).then(function (pdf) {
+        // Adding timestamp forces the browser to always trigger a 
+        // new request for the PDF file. This is a way to prevent 
+        // the browser to use the cached version of the file 
+        PDFJS.getDocument(`${filePath}?${Date.now()}`).then(function (pdf) {
             var promises = [], promise;
             for (var i = 1; i < pdf.numPages; i++) {
                 promise = pdf.getPage(i).then(function (page) {
@@ -375,16 +379,17 @@ class Utils {
     }
 
     public getLastMod(url:string):any {
-        var promise = new Promise(function(resolve, reject){
-            var req = new XMLHttpRequest();
-		    req.open("GET", url);
-	        req.send(null);
-		    req.addEventListener("load", 
-            function() 
-                {resolve(req.getResponseHeader("Last-Modified"));
-            }, false);
+        var lastModifiedDate;
+        var xhr = $.ajax({
+            type: "GET",
+            cache: false,
+            async: false, 
+            url: url,
+            success: function (data, status, res) {
+                lastModifiedDate = res.getResponseHeader("Last-Modified");
+            }
         });
-        return promise;
+        return lastModifiedDate;
     }
 
     public getCompareLastMod(lstMod1:string, lstMod2:string):boolean {
@@ -395,6 +400,20 @@ class Utils {
         return stsResult;
     }
 
+}
+
+class contextMenu {
+    static actionCopy() {
+        document.querySelector('#clipBoard').innerHTML = document.querySelector('#tempBoard').innerHTML;
+        $('#contextMenu').hide();
+    };
+
+    static actionPaste() {
+        var selected_node = _jm.get_selected_node(); // select node when mouseover
+        var topic = document.querySelector('#clipBoard').innerHTML;
+        _jm.add_node(selected_node, Date.now(), topic);
+        $('#contextMenu').hide();
+    };
 }
 
 class GuiSideBar {
@@ -422,6 +441,10 @@ class GuiSideBar {
 
     }
 
+    public resetSidebar() {
+        $(".list-group").empty();
+    }
+
     public setGuiOnAppend(id:string, topic:string) {
         var node = new Nodes(id, topic);
         if(this.checkJsmindNode(node.getId()) == false) {
@@ -432,22 +455,33 @@ class GuiSideBar {
     public setJsmindListener() {
         // Update the annotation panel on each MindMap event
         _jm.add_event_listener(function () {
-		var mindmap = _jm.get_data();
-		var nodes = $('.list-group-item').get();
-		nodes.forEach(function (node) {
-			if (_jm.mind.nodes[node.id]) {
-				$('#'+node.id).hide();
-			} else {
-				$('#'+node.id).show();
-			}
-		});
+         	var jmnodes = document.querySelectorAll('jmnode');
+            for(var i = 0; i < jmnodes.length; i++) {
+         		// Not efficient, need to figure out another way to do this. 
+         		jmnodes[i].oncontextmenu = function (e) {
+         			e.preventDefault();
+         			$('#contextMenu').show();
+         			$('#contextMenu').css({ position: 'absolute', marginLeft: e.clientX, marginTop: e.clientY-45 });
+         			document.querySelector('#tempBoard').innerHTML = e.target.innerHTML;
+         		}
+         	}
 
-		// Update localStorage with the current mindmap data on every update
-		window.localStorage.setItem('json_data', JSON.stringify(_jm.get_data()));
-    });
+            var mindmap = _jm.get_data();
+            var nodes = $('.list-group-item').get();
+            nodes.forEach(function (node) {
+                if (_jm.mind.nodes[node.id]) {
+                    $('#'+node.id).hide();
+                } else {
+                    $('#'+node.id).show();
+                }
+            });
+
+            // Update localStorage with the current mindmap data on every update
+            window.localStorage.setItem('json_data', JSON.stringify(_jm.get_data()));
+        });
     }
 
-    private setDynamicHtmlObject(objekt:NodesObject) {
+    public setDynamicHtmlObject(objekt:NodesObject) {
         var node;
         for(var i = 0; i < objekt.length; i++) {
             var input = objekt[i];
@@ -473,11 +507,15 @@ class GuiSideBar {
 
     private checkJsmindNode(id:string):boolean {
         var checkResult = false;
-        if(_jm.mind.nodes[id]) {
+        // Get the IDs of all annotations in the sidebar
+        var nodesInSidebar = $('.list-group-item').get().map((e) => e.id); 
+
+        // If the annotation is in the sidebar, it should stay as it is
+        // Also, if the annotation is in jsMind, its state should also be as it is  
+        if (nodesInSidebar.indexOf(id) != -1 || _jm.mind.nodes[id]) {
             checkResult = true;
         }
         return checkResult;
-
     }
 
 
@@ -512,27 +550,42 @@ interface NodesObject extends Array<object> {
 // Function Section
 // ========================================================= //
 
+var node:any;
+var dir:string = "/scimappr/doc";
+var listPdf = new ListPdf(new Array,new Array, dir);
+var listAnnotation = new ListAnnotations(dir);
+var util = new Utils();
 
 function programCaller(data:any) {
-    var node:any;
 	switch(data) {
 
 		case "init":
-            var dir:string = "/scimappr/doc";
-            var listPdf = new ListPdf(new Array,new Array, dir);
-            var util = new Utils();
             node = new Nodes("", "");
             $(".drag").draggable(node.setDraggable());
             $(".drop").droppable(node.setDroppable());
+
+            // Render existing MindMap
+            var options = {
+                container:'jsmind_container',
+                theme:'greensea',
+                editable:true
+            }
+            var baseMindmap = {
+                "meta":{
+                    "name":"jsMind Example",
+                    "version":"0.2"
+                },
+                "format":"node_tree",
+                "data":{"id":"root","topic":"jsMind","children": [] }
+            };
+            var mindmap = JSON.parse(window.localStorage.getItem('json_data')) || baseMindmap;
+            _jm = jsMind.show(options, mindmap);
 
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
             Promise.all([pdfProcess]).then(function(response){
                 listPdf.setListPdfFile(response[0]);
-                var promises = listPdf.getModDate(util, response[0]);
-                Promise.all([promises]).then(function(responsePromise){
-                    listPdf.setLastModDate(responsePromise[0]);
-                })
+                listPdf.setLastModDate(listPdf.getModDate(util, response[0]));
             });
 
             console.log(listPdf.getListPdf());
@@ -545,25 +598,21 @@ function programCaller(data:any) {
 
 		case "refresh":
             // Call Constructors for some classes
-            
-            var listAnnotation = new ListAnnotations(dir);
+
             var guiSideBar = new GuiSideBar();
             var fileName:string;
             var callBackCounter:number = 0;
 
-            var dir:string = "/scimappr/doc";
-            var listPdf = new ListPdf(new Array,new Array, dir);
-
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
+            guiSideBar.resetSidebar();
             
             // get annotation's lists
             Promise.all([pdfProcess]).then(function(response){
                 listPdf.setListPdfFile(response[0]);
-                //listPdf.setLastModDate(util, response[0])
                 callBackCounter = listPdf.getCount();
                 for(var i = 0; i < listPdf.getCount(); i++) {
-                    var pdfPages = listPdf.getPdfPage(listPdf.getListPdfFile(i), listPdf.getListPdfFile(i).replace("http://", "").replace("localhost/", ""));
+                    var pdfPages = listPdf.getPdfPage(listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
                     Promise.all([pdfPages]).then(function(responsePages){
                         callBackCounter--;
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(callBackCounter));
@@ -579,18 +628,24 @@ function programCaller(data:any) {
             break;
 
         case "refreshAnnotation":
+            var guiSideBar = new GuiSideBar();
+            var callBackCounter:number = 0;
+// change has flag, saying if files changed or not.
+// change[1] list of changed pdfs
+// change[2] num of files changed
             var change:any = listPdf.chkDateChange(util, listPdf.getListPdf());
             var listChange:string[] = change[1];
             var numChange: number = change[2];
             if(change[0] == true) {
+                callBackCounter = numChange;
                 for(var i = 0; i < numChange; i++) {
-                    var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i].replace("http://", "").replace("localhost/", ""));
-                    Promise.all([pdfPages]).then(function(responsePages){
+                    var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i]);
+                    Promise.all([pdfPages]).then(function(responsePages) {
                         callBackCounter--;
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(callBackCounter));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function(responseResult){
-                            var resultJson:string = responseResult[2];
-                            guiSideBar.setGuiOnAppend(node.getid(), node.getTopic());
+                            var newNodes:NodesObject = JSON.parse(responseResult[2]);
+                            guiSideBar.setDynamicHtmlObject(newNodes);
                         })
                     })
                 }
