@@ -1,4 +1,4 @@
- var _jm = null;
+
     function open_empty(){
         var options = {
             container:'jsmind_container',
@@ -13,9 +13,7 @@
             "format":"node_tree",
             "data":{"id":"root","topic":"jsMind","children": [] }
         };
-        var mindmap = JSON.parse(window.localStorage.getItem('json_data')) || baseMindmap;
-        _jm = jsMind.show(options, mindmap);
-        // _jm = jsMind.show(options,mind);
+        _jm.show(options,mind);
     }
 
     function open_json(){
@@ -391,5 +389,3 @@
     function prompt_info(msg){
         alert(msg);
     }
-
-    open_empty();
