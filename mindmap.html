@@ -29,6 +29,18 @@
     cursor: pointer;
     background-color: #f5f5f5;
 }
+        #exTab2 h3 {
+            color : white;
+            background-color: #428bca;
+            padding : 5px 15px;
+        }
+
+        #pdf-input {
+            margin-top : 10px;
+            margin-bottom : 10px;
+        }
+
+
 <!-- #main-wrapper {
     height: 100%;
     overflow-y: auto;
@@ -159,12 +171,36 @@
     </nav>
 </div>
 <div id="wrapper">
-	<div id="sidebar-wrapper" class="col-md-2">
-			<ul class="list-group">
-				
-			</ul>
-			
+    <div id="sidebar-wrapper" class="col-md-2">
+
+                <ul class="nav nav-tabs">
+                    <li class="active">
+                        <a href="#Project-tab" data-toggle="tab">Project</a>
+                    </li>
+                    <li>
+                        <a href="#Annotation-tab" data-toggle="tab">Annotation</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content ">
+                    <div class="tab-pane active" id="Project-tab">
+                        <input type="file" id="pdf-input" webkitdirectory directory multiple/>
+                    </div>
+                    <div class="tab-pane" id="Annotation-tab">
+                        <ul class="list-group">
+
+                        </ul>
+                    </div>
+                </div>
+
+
+
+
     </div>
+
+
+
+
     <div id="main-wrapper" class="col-md-10 pull-right">
         <div id="jsmind_container" class="panel-resizable drop"> </div>
 		<div style="display:none">
