@@ -4,12 +4,13 @@
 declare var PDFJS:any;
 declare var Promise:any;
 declare var $:any;
-declare var hex_md5:any;
+declare var hex_sha1:any;
 
-declare var hex_hmac_md5:any;
+declare var hex_hmac_sha1:any;
 declare function prompt_info(message:string): any;
 declare var _jm: {get_selected_node: Function, select_node: Function, add_node: Function, mind:{nodes:Function}, add_event_listener:Function, get_data:Function};
 declare var jsMind:any;
+declare var jmnodes:any;
 
 // ========================================================= //
 // Class Section
@@ -592,8 +593,8 @@ class Utils {
      * @returns {string}
      */
     public getHashFunction(input:string):string {
-        var hash:string = hex_md5("string");
-		var hmac:string = hex_hmac_md5("19", input);
+        var hash:string = hex_sha1("string");
+		var hmac:string = hex_hmac_sha1("19", input);
 		return hmac;
     }
 
@@ -710,7 +711,7 @@ class GuiSideBar {
     public setJsmindListener() {
         // Update the annotation panel on each MindMap event
         _jm.add_event_listener(function () {
-         	var jmnodes = document.querySelectorAll('jmnode');
+         	jmnodes = document.querySelectorAll('jmnode');
             for(var i = 0; i < jmnodes.length; i++) {
          		// Not efficient, need to figure out another way to do this.
          		jmnodes[i].oncontextmenu = function (e) {
@@ -892,7 +893,7 @@ function programCaller(data:any) {
 
             var guiSideBar = new GuiSideBar();
             var fileName:string;
-            var callBackCounter:number = 0;
+            var pdfNumberCounter:number = 0;
 
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
@@ -901,12 +902,12 @@ function programCaller(data:any) {
             // get annotation's lists
             Promise.all([pdfProcess]).then(function(response){
                 listPdf.setListPdfFile(response[0]);
-                callBackCounter = listPdf.getCount();
+                pdfNumberCounter = listPdf.getCount();
                 for(var i = 0; i < listPdf.getCount(); i++) {
                     var pdfPages = listPdf.getPdfPage(listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
                     Promise.all([pdfPages]).then(function(responsePages){
-                        callBackCounter--;
-                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(callBackCounter));
+                        pdfNumberCounter--;
+                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(pdfNumberCounter));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function(responseResult){
                             var resultJson:string = responseResult[2];
                             guiSideBar.setGuiInit(resultJson);
@@ -922,7 +923,7 @@ function programCaller(data:any) {
          */
         case "refreshAnnotation":
             var guiSideBar = new GuiSideBar();
-            var callBackCounter:number = 0;
+            var pdfNumberCounter:number = 0;
 // change has flag, saying if files changed or not.
 // change[1] list of changed pdfs
 // change[2] num of files changed
@@ -930,12 +931,12 @@ function programCaller(data:any) {
             var listChange:string[] = change[1];
             var numChange: number = change[2];
             if(change[0] == true) {
-                callBackCounter = numChange;
+                pdfNumberCounter = numChange;
                 for(var i = 0; i < numChange; i++) {
                     var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i]);
                     Promise.all([pdfPages]).then(function(responsePages) {
-                        callBackCounter--;
-                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(callBackCounter));
+                        pdfNumberCounter--;
+                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(pdfNumberCounter));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function(responseResult){
                             var newNodes:NodesObject = JSON.parse(responseResult[2]);
                             guiSideBar.setDynamicHtmlObject(newNodes);
