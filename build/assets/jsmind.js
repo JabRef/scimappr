@@ -104,7 +104,7 @@
     jm.direction = {left:-1,center:0,right:1};
     jm.event_type = {show:1,resize:2,edit:3,select:4};
 
-    jm.node = function(sId,iIndex,sTopic,oData,bIsRoot,oParent,eDirection,bExpanded){
+    jm.node = function(sId,iIndex,sTopic,oData,bIsRoot,oParent,eDirection,bExpanded, pdfId){
         if(!sId){logger.error('invalid nodeid');return;}
         if(typeof iIndex != 'number'){logger.error('invalid node index');return;}
         if(typeof bExpanded === 'undefined'){bExpanded = true;}
@@ -118,6 +118,7 @@
         this.expanded = !!bExpanded;
         this.children = [];
         this._data = {};
+        this.pdfid = pdfId;
     };
 
     jm.node.compare=function(node1,node2){
@@ -206,14 +207,14 @@
             }
         },
 
-        add_node:function(parent_node, nodeid, topic, data, idx, direction, expanded){
+        add_node:function(parent_node, nodeid, topic, data, idx, direction, expanded, pdfId){
             if(!jm.util.is_node(parent_node)){
                 var the_parent_node = this.get_node(parent_node);
                 if(!the_parent_node){
                     logger.error('the parent_node[id='+parent_node+'] can not be found.');
                     return null;
                 }else{
-                    return this.add_node(the_parent_node, nodeid, topic, data, idx, direction, expanded);
+                    return this.add_node(the_parent_node, nodeid, topic, data, idx, direction, expanded, pdfId);
                 }
             }
             var nodeindex = idx || -1;
@@ -229,9 +230,9 @@
                 }else{
                     d = (direction != jm.direction.left) ? jm.direction.right : jm.direction.left;
                 }
-                node = new jm.node(nodeid,nodeindex,topic,data,false,parent_node,d,expanded);
+                node = new jm.node(nodeid,nodeindex,topic,data,false,parent_node,d,expanded, pdfId);
             }else{
-                node = new jm.node(nodeid,nodeindex,topic,data,false,parent_node,parent_node.direction,expanded);
+                node = new jm.node(nodeid,nodeindex,topic,data,false,parent_node,parent_node.direction,expanded, pdfId);
             }
             if(this._put_node(node)){
                 parent_node.children.push(node);
@@ -1339,16 +1340,16 @@
             return this.mind.get_node(nodeid);
         },
 
-        add_node:function(parent_node, nodeid, topic, data){
+        add_node:function(parent_node, nodeid, topic, data, pdfid){
             if(this.get_editable()){
-                var node = this.mind.add_node(parent_node, nodeid, topic, data);
+                var node = this.mind.add_node(parent_node, nodeid, topic, data, "", "", "", pdfid);
                 if(!!node){
                     this.view.add_node(node);
                     this.layout.layout();
                     this.view.show(false);
                     this.view.reset_node_custom_style(node);
                     this.expand_node(parent_node);
-                    this.invoke_event_handle(jm.event_type.edit,{evt:'add_node',data:[parent_node.id,nodeid,topic,data],node:nodeid});
+                    this.invoke_event_handle(jm.event_type.edit,{evt:'add_node',data:[parent_node.id,nodeid,topic,data, pdfid],node:nodeid});
                 }
                 return node;
             }else{
@@ -2353,6 +2354,7 @@
                 }
             }
             d.setAttribute('nodeid',node.id);
+            d.setAttribute('pdfid', node.pdfid)
             d.style.visibility='hidden';
             this._reset_node_custom_style(d, node.data);
 
