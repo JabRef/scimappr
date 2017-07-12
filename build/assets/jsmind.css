@@ -36,7 +36,7 @@ jmexpander:hover{border-color:#000;}
 /* primary theme */
 jmnodes.theme-primary jmnode{background-color:#e5e5ff;color:#000;border-color:#000;}
 jmnodes.theme-primary jmnode.root{font-size:20px;background-color:#428bca;color:#fff;border-color:#357ebd;-moz-border-radius: 100px/50px; -webkit-border-radius: 100px/50px;}
-jmnodes.theme-primary jmnode.root.selected{background-color:#f1c40f;color:#fff;}
+jmnodes.theme-primary jmnode.root.selected{background-color:#f1c40f;color:#000;}
 jmnodes.theme-primary jmnode:hover{background-color:#3276b1;border-color:#285e8e;}
 jmnodes.theme-primary jmnode.selected{background-color:#fdfdfd;color:#890;}
 jmnodes.theme-primary jmexpander{border-color:blue;}
