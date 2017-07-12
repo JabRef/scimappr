@@ -7,108 +7,8 @@
 	<link type="text/css" rel="stylesheet" href='/scimappr/build/assets/jsmind.css'/>
 	
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-	
-	<style>
-		body {
-    padding-top: 50px;
-    overflow: hidden;
-}
-#wrapper {
-    min-height: 100%;
-    height: 100%;
-    width: 100%;
-    position: absolute;
-    top: 0px;
-    left: 0;
-    display: inline-block;
-}
-#contextMenu li {
-    padding: 5px 10px;
-}
-#contextMenu li:hover {
-    cursor: pointer;
-    background-color: #f5f5f5;
-}
-        #exTab2 h3 {
-            color : white;
-            background-color: #428bca;
-            padding : 5px 15px;
-        }
 
-        #pdf-input {
-            margin-top : 10px;
-            margin-bottom : 10px;
-        }
-
-
-<!-- #main-wrapper {
-    height: 100%;
-    overflow-y: auto;
-    padding: 50px 0 0px 0;
-	border-left: 1px solid gray;
-} -->
-<!-- #jsmind_container {
-    position: relative;
-    height: 100%;
-    overflow-y: auto;
-    padding: 0 15px;
-	background:#f1f1f1;
-}
- -->
-<!-- #jsmind_container.jsmind-inner {
-	position:relative;overflow:auto;width:100%;height:100%;
-}
-#jsmind_container.jsmind-inner {
-	moz-user-select:-moz-none;
-    -moz-user-select:none;
-    -o-user-select:none;
-    -khtml-user-select:none;
-    -webkit-user-select:none;
-    -ms-user-select:none;
-    user-select:none;
-}
- -->
-#sidebar-wrapper {
-    height: 100%;
-    padding: 50px 0 0px 0;
-    border-right: 1px solid gray;
-}
-#sidebar {
-    position: relative;
-    height: 100%;
-    overflow-y: auto;
-}
-#sidebar .list-group-item {
-        border-radius: 0;
-        border-left: 0;
-        border-right: 0;
-        border-top: 0;
-}
-@media (max-width: 992px) {
-    body {
-        padding-top: 0px;
-    }
-}
-@media (min-width: 992px) {
-    #main-wrapper {
-        float:right;
-    }
-}
-@media (max-width: 992px) {
-    #main-wrapper {
-        padding-top: 0px;
-    }
-}
-@media (max-width: 992px) {
-    #sidebar-wrapper {
-        position: static;
-        height:auto;
-        max-height: 300px;
-  		border-right:0;
-	}
-}
- -->
- </style>
+    <link type="text/css" rel="stylesheet" href='/scimappr/build/assets/mindmap.css'/>
 </head>
  
 <body onload="programCaller('init')">	
@@ -121,27 +21,27 @@
     </div>
     <nav class="collapse navbar-collapse">
         <ul class="nav navbar-nav">
-             <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Files<b class="caret"></b></a>
+
+            <li>
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Project<b class="caret"></b></a>
                 <ul class="dropdown-menu">
-					<li><a href="javascript:open_empty()">New Mind Map</a></li>
-                    <li><a href="javascript:open_json()">Open Existing</a></li>
-					<li><a href="javascript:open_json()">Open File</a></li>
-					<li><a href="javascript:save_freemind_file()">Save Mind Map</a></li>
-					<li><a href="javascript:save_file()">Save As</a></li>
-					<li><a href="javascript:myCloseConfirmation()">Close Mind Map</a></li>
-					<li><a href="javascript:myExitConfirmation()">Exit</a></li>
-					
+                    <li><a href="javascript:prompt_info('under construction')">New Project</a></li>
+                    <li><a href="javascript:prompt_info('under construction')">Open Location</a></li>
+
                 </ul>
             </li>
-			<li>
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">PDF<b class="caret"></b></a>
-				<ul class="dropdown-menu">
-					<li><a href="javascript:programCaller('refresh')">Refresh PDFs</a></li>
-					<li><a href="javascript:prompt_info('under construction')">Add PDF</a></li>
-                    <li><a href="javascript:programCaller('refreshAnnotation')">Refresh Annotation</a></li>
-					
-				</ul>
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Files<b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                    <li><a href="javascript:open_empty()">New Mind Map</a></li>
+                    <li><a href="javascript:open_json()">Open Existing</a></li>
+                    <li><a href="javascript:open_json()">Open File</a></li>
+                    <li><a href="javascript:save_freemind_file()">Save Mind Map</a></li>
+                    <li><a href="javascript:save_file()">Save As</a></li>
+                    <li><a href="javascript:myCloseConfirmation()">Close Mind Map</a></li>
+                    <li><a href="javascript:myExitConfirmation()">Exit</a></li>
+
+                </ul>
             </li>
 			<li>
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Nodes<b class="caret"></b></a>
@@ -151,13 +51,12 @@
 					
 				</ul>
             </li>
+
             <li>
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Project<b class="caret"></b></a>
-				<ul class="dropdown-menu">
-					<li><a href="javascript:prompt_info('under construction')">New Project</a></li>
-					<li><a href="javascript:prompt_info('under construction')">Open Location</a></li>
-					
-				</ul>
+                <a href="javascript:programCaller('refresh')">Refresh PDF</a>
+                <ul class="dropdown-menu">
+
+                </ul>
             </li>
         </ul>
         <ul class="nav navbar-nav pull-right">
@@ -193,9 +92,6 @@
                     </div>
                 </div>
 
-
-
-
     </div>
 
 
@@ -214,8 +110,10 @@
 <div id="contextMenu" style="display: none; z-index: 200">
     <div class="dropdown open">
         <ul class="dropdown-menu">
-            <li class="actionCopy" onClick="contextMenu.actionCopy()">Copy</li>
-            <li onClick="contextMenu.actionPaste()">Paste</li>
+            <li class="actionOpenPdf" onClick="programCaller('openPDFMenu')">Open PDF</li>
+            <li class="actionCopy" onClick="programCaller('copyMenu')">Copy</li>
+            <li onClick="programCaller('pasteMenu')">Paste</li>
+            <li onClick="programCaller('cancelMenu')">Cancel</li>
         </ul>
     </div>
 </div>
@@ -235,8 +133,7 @@
  -->		
 	<script type="text/javascript" src="/scimappr/build/assets/pdf.js"></script> <!-- Main Code of PDF.js -->
 	<!-- <script type="text/javascript" src="/scimappr/build/assets/mindmap.pdf.js"></script> <!-- For PDF Parsing Purposes -->
- -->	
-	<script type="text/javascript" src='/scimappr/build/assets/md5-min.js'></script> <!-- For PDF ID Using Hash Purposes -->
+ -->
     <script type="text/javascript" src='/scimappr/build/assets/sha1-min.js'></script> <!-- For PDF ID Using  sha1 Hash Purposes -->
 	
 </body>

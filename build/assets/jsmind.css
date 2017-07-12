@@ -16,29 +16,31 @@ canvas{position:absolute;z-index:1;}
 
 /* z-index:2 */
 jmnodes{position:absolute;z-index:2;background-color:rgba(0,0,0,0);}/*background color is necessary*/
-jmnode{position:absolute;cursor:default;max-width:400px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-jmexpander{position:absolute;width:11px;height:11px;display:block;overflow:hidden;line-height:12px;font-size:12px;text-align:center;border-radius:6px;border-width:1px;border-style:solid;cursor:pointer;}
+jmnode{position:absolute;cursor:defaultx;max-width:400px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+jmexpander{position:absolute;width:11px;height:11px;display:block;overflow:hidden;line-height:11px;font-size:12px;text-align:center;border-radius:6px;border-width:1px;border-style:solid;cursor:pointer;}
 
 /* default theme */
-jmnode{padding:10px;background-color:#fff;color:#333;border-radius:5px;box-shadow:1px 1px 1px #666;font:16px/1.125 Verdana,Arial,Helvetica,sans-serif;}
+jmnode{padding:10px;background-color:#fff;color:#222;font:16px/1.125 Verdana,Arial,Helvetica,sans-serif;}
 jmnode:hover{box-shadow:2px 2px 8px #000;background-color:#ebebeb;color:#333;}
 jmnode.selected{background-color:#11f;color:#fff;box-shadow:2px 2px 8px #000;}
-jmnode.root{font-size:24px;}
+jmnode.root{font-size:20px;background-color:#428bca;color:#fff;border-color:#357ebd;}
 jmexpander{border-color:gray;}
 jmexpander:hover{border-color:#000;}
 
-@media screen and (max-device-width: 1024px) {
-    jmnode{padding:5px;border-radius:3px;font-size:14px;}
+
+
+@media screen and (max-device-width: 1080px) {
+    jmnode{padding:5px;border-radius:30px;font-size:14px;}
     jmnode.root{font-size:21px;}
 }
 /* primary theme */
-jmnodes.theme-primary jmnode{background-color:#428bca;color:#fff;border-color:#357ebd;}
+jmnodes.theme-primary jmnode{background-color:#e5e5ff;color:#000;border-color:#000;}
+jmnodes.theme-primary jmnode.root{font-size:20px;background-color:#428bca;color:#fff;border-color:#357ebd;-moz-border-radius: 100px/50px; -webkit-border-radius: 100px/50px;}
+jmnodes.theme-primary jmnode.root.selected{background-color:#f1c40f;color:#fff;}
 jmnodes.theme-primary jmnode:hover{background-color:#3276b1;border-color:#285e8e;}
-jmnodes.theme-primary jmnode.selected{background-color:#f1c40f;color:#fff;}
-jmnodes.theme-primary jmnode.root{}
-jmnodes.theme-primary jmexpander{}
-jmnodes.theme-primary jmexpander:hover{}
-
+jmnodes.theme-primary jmnode.selected{background-color:#fdfdfd;color:#890;}
+jmnodes.theme-primary jmexpander{border-color:blue;}
+jmnodes.theme-primary jmexpander:hover{width:15px; height: 15px; line-height: 15px; font-size: 15px;}
 /* warning theme */
 jmnodes.theme-warning jmnode{background-color:#f0ad4e;border-color:#eea236;color:#fff;}
 jmnodes.theme-warning jmnode:hover{background-color:#ed9c28;border-color:#d58512;}

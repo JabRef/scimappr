@@ -22,9 +22,10 @@ var Nodes = (function () {
      * @param nodeId
      * @param nodeTopic
      */
-    function Nodes(nodeId, nodeTopic) {
+    function Nodes(nodeId, nodeTopic, fileName) {
         this.id = nodeId;
         this.topic = nodeTopic;
+        this.filename = fileName;
     }
     /**
      *
@@ -53,6 +54,12 @@ var Nodes = (function () {
      */
     Nodes.prototype.getTopic = function () {
         return this.topic;
+    };
+    Nodes.prototype.setFileName = function (filename) {
+        this.filename = filename;
+    };
+    Nodes.prototype.getFileName = function () {
+        return this.filename;
     };
     /**
      * set Node to be Draggable
@@ -86,7 +93,8 @@ var Nodes = (function () {
                 }
                 var nodeid = ui.helper.prevObject.context.id;
                 var topic = ui.helper.prevObject.context.innerHTML;
-                var node = _jm.add_node(selected_node, nodeid, topic);
+                var pdfid = ui.helper.prevObject.context.title;
+                var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid);
             }
         };
         return temp;
@@ -556,30 +564,41 @@ var Utils = (function () {
     return Utils;
 }());
 /**
- *
+ * Used when doing right click (to select some menus)
  */
-var contextMenu = (function () {
-    function contextMenu() {
+var ContextMenu = (function () {
+    function ContextMenu() {
     }
-    /**
-     *
-     */
-    contextMenu.actionCopy = function () {
+    ContextMenu.prototype.setListData = function (input) {
+        this.listData = new Array;
+        for (var i = 0; i < input.length; i++) {
+            this.listData[i] = input[i];
+        }
+    };
+    ContextMenu.prototype.getListData = function () {
+        return this.listData;
+    };
+    ContextMenu.prototype.actionCopy = function () {
         document.querySelector('#clipBoard').innerHTML = document.querySelector('#tempBoard').innerHTML;
         $('#contextMenu').hide();
     };
-    ;
-    /**
-     *
-     */
-    contextMenu.actionPaste = function () {
+    ContextMenu.prototype.actionPaste = function () {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var topic = document.querySelector('#clipBoard').innerHTML;
         _jm.add_node(selected_node, Date.now(), topic);
         $('#contextMenu').hide();
     };
-    ;
-    return contextMenu;
+    ContextMenu.prototype.actionOpenPdf = function (directory) {
+        var selected_node = _jm.get_selected_node(); // select node when mouseover
+        var pdfViewer = "/scimappr/build/pdf.js/web/viewer.html";
+        var fileName = "?File=" + directory.replace("doc", "") + selected_node.pdfid;
+        window.open(pdfViewer + fileName, "_blank", "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
+        $('#contextMenu').hide();
+    };
+    ContextMenu.prototype.actionCancel = function () {
+        $('#contextMenu').hide();
+    };
+    return ContextMenu;
 }());
 /**
  * For the creation of the side bar
@@ -615,8 +634,8 @@ var GuiSideBar = (function () {
      * @param id
      * @param topic
      */
-    GuiSideBar.prototype.setGuiOnAppend = function (id, topic) {
-        var node = new Nodes(id, topic);
+    GuiSideBar.prototype.setGuiOnAppend = function (id, topic, filename) {
+        var node = new Nodes(id, topic, filename);
         if (this.checkJsmindNode(node.getId()) == false) {
             this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item");
         }
@@ -637,7 +656,6 @@ var GuiSideBar = (function () {
                     document.querySelector('#tempBoard').innerHTML = e.target.innerHTML;
                 };
             }
-            var mindmap = _jm.get_data();
             var nodes = $('.list-group-item').get();
             nodes.forEach(function (node) {
                 if (_jm.mind.nodes[node.id]) {
@@ -660,7 +678,7 @@ var GuiSideBar = (function () {
         for (var i = 0; i < objekt.length; i++) {
             var input = objekt[i];
             var annot = new Annotation(input["filename"], input["id"], input["topic"], input["subtype"], input["title"]);
-            node = new Nodes(annot.getId(), annot.getTopic());
+            node = new Nodes(annot.getId(), annot.getTopic(), annot.getFileName());
             if (this.checkJsmindNode(node.getId()) == false) {
                 this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item");
             }
@@ -674,7 +692,8 @@ var GuiSideBar = (function () {
      * @returns {string}
      */
     GuiSideBar.prototype.setDynamicHtmlTitle = function (util, id, fileName) {
-        this.basicHtmlTitle = "<li id=" + util.getHashFunction(id) + " " + "style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + fileName + "</li>";
+        var pdfId = util.getHashFunction(id);
+        this.basicHtmlTitle = "<li id=" + pdfId + " " + "style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + fileName + "</li>";
         return this.basicHtmlTitle;
     };
     /**
@@ -688,6 +707,7 @@ var GuiSideBar = (function () {
         $(this.basicHtmlContent).appendTo(appendToName).draggable(node.setDraggable());
         $(this.basicHtmlContent).droppable(node.setDroppable());
         document.getElementById(node.getId()).className += className;
+        document.getElementById(node.getId()).title += node.getFileName();
     };
     /**
      *Check whether the nodes already in the jsmind tree in the right side or not
@@ -715,6 +735,7 @@ var dir = "/scimappr/doc";
 var listPdf = new ListPdf(new Array, new Array, dir);
 var listAnnotation = new ListAnnotations(dir);
 var util = new Utils();
+var contextMenu = new ContextMenu();
 /**
  * Main program, it is also called from the HTML file
  * @param data
@@ -722,16 +743,17 @@ var util = new Utils();
 function programCaller(data) {
     switch (data) {
         /**
-         *For the first initilization for the program
+         * For the first initilization for the program
          */
         case "init":
-            node = new Nodes("", "");
+            node = new Nodes("", "", "");
+            //to set nodes as draggable and droppable
             $(".drag").draggable(node.setDraggable());
             $(".drop").droppable(node.setDroppable());
             // Render existing MindMap
             var options = {
                 container: 'jsmind_container',
-                theme: 'greensea',
+                theme: 'primary',
                 editable: true
             };
             var baseMindmap = {
@@ -742,6 +764,7 @@ function programCaller(data) {
                 "format": "node_tree",
                 "data": { "id": "root", "topic": "jsMind", "children": [] }
             };
+            //this will find the cache json in order to not to lose already created jsmind tree json file
             var mindmap = JSON.parse(window.localStorage.getItem('json_data')) || baseMindmap;
             _jm = jsMind.show(options, mindmap);
             //get PDF's lists
@@ -761,7 +784,6 @@ function programCaller(data) {
         case "refresh":
             // Call Constructors for some classes
             var guiSideBar = new GuiSideBar();
-            var fileName;
             var pdfNumberCounter = 0;
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
@@ -783,9 +805,6 @@ function programCaller(data) {
                 }
             });
             break;
-        /**
-         *
-         */
         case "refreshAnnotation":
             var guiSideBar = new GuiSideBar();
             var pdfNumberCounter = 0;
@@ -812,6 +831,22 @@ function programCaller(data) {
             else {
                 prompt_info("No Change in Annotation");
             }
+            break;
+        case "copyMenu":
+            var contextMenu = new ContextMenu();
+            contextMenu.actionCopy();
+            break;
+        case "pasteMenu":
+            var contextMenu = new ContextMenu();
+            contextMenu.actionPaste();
+            break;
+        case "openPDFMenu":
+            var contextMenu = new ContextMenu();
+            contextMenu.actionOpenPdf(dir);
+            break;
+        case "cancelMenu":
+            var contextMenu = new ContextMenu();
+            contextMenu.actionCancel();
             break;
     }
 }
