@@ -8,7 +8,7 @@ declare var hex_sha1:any;
 
 declare var hex_hmac_sha1:any;
 declare function prompt_info(message:string): any;
-declare var _jm: {get_selected_node: Function, select_node: Function, add_node: Function, mind:{nodes:Function}, add_event_listener:Function, get_data:Function};
+declare var _jm: {get_selected_node: Function, select_node: Function, show: Function, add_node: Function, mind:{nodes:Function}, add_event_listener:Function, get_data:Function};
 declare var jsMind:any;
 declare var jmnodes:any;
 
@@ -685,6 +685,91 @@ class ContextMenu {
         $('#contextMenu').hide();
     }
 }
+
+class MindmapMenu {
+    private jsMindObject: any;
+
+    constructor(jsMindObject) {
+        this.jsMindObject = jsMindObject;
+    }
+
+    public newMap() {
+        var mindmap = {
+            "meta":{
+                "name":"jsMind",
+                "version":"0.2"
+            },
+            "format":"node_tree",
+            "data":{"id":"root","topic":"Root","children": [] }
+        };
+        this.jsMindObject.show(mindmap);
+        // Reset the file selector
+        document.querySelector('#mindmap-chooser').value = '';
+    }
+
+    public saveFile(fileType:string) {
+        var mind_data;
+        if (fileType === 'jm') {
+            mind_data = this.jsMindObject.get_data();
+        } else {
+            mind_data = this.jsMindObject.get_data('freemind');
+        }
+        var mind_str = (fileType === 'jm') ? jsMind.util.json.json2string(mind_data) : mind_data.data;
+        var file_name = prompt("Enter file name", mind_data.meta.name || 'jsMind');
+        if (!file_name) { return }
+        if (fileType === 'jm') {
+            jsMind.util.file.save(mind_str,'text/jsmind', file_name+'.jm');
+        } else {
+            jsMind.util.file.save(mind_str,'text/xml', file_name+'.mm');
+        }
+    }
+    
+    public selectFile() {
+        var file_input = document.getElementById('mindmap-chooser');
+        file_input.click();
+    }
+
+    public setListeners() {
+        var mindMapChooser = <HTMLInputElement>document.getElementById('mindmap-chooser');
+        mindMapChooser.addEventListener('change', function (event) {
+            var files:FileList = mindMapChooser.files;
+            if (files.length <= 0) {
+                alert('please choose a file first')
+            }
+
+            var file_data = files[0];
+            if (/.*\.mm$/.test(file_data.name)) {
+                jsMind.util.file.read(file_data, function (freemind_data, freemind_name){
+                    if (freemind_data) {
+                        var mind_name = freemind_name.substring(0, freemind_name.length-3);
+                        var mind = {
+                            "meta":{
+                                "name": mind_name,
+                                "version":"1.0.1"
+                            },
+                            "format":"freemind",
+                            "data": freemind_data
+                        };
+                        _jm.show(mind);
+                    } else {
+                        alert('The selected file is not supported');
+                    }
+                });
+            } else {
+                jsMind.util.file.read(file_data,function (jsmind_data, jsmind_name) {
+                    var mind = jsMind.util.json.string2json(jsmind_data);
+                    if (!!mind) {
+                        _jm.show(mind);
+                    } else {
+                        alert('The selected file is not supported');
+                    }
+                });
+            }
+        });
+    }
+}
+
+
 /**
  * For the creation of the side bar
  */
@@ -761,9 +846,6 @@ class GuiSideBar {
                     $('#'+node.id).show();
                 }
             });
-
-            // Update localStorage with the current mindmap data on every update
-            window.localStorage.setItem('json_data', JSON.stringify(_jm.get_data()));
         });
     }
 
@@ -777,8 +859,16 @@ class GuiSideBar {
             var input = objekt[i];
             var annot = new Annotation(input["filename"], input["id"], input["topic"],input["subtype"], input["title"])
             node = new Nodes(annot.getId(), annot.getTopic(), annot.getFileName());
-            if(this.checkJsmindNode(node.getId()) == false) {
+            // All annotations must exist in the Sidebar, whether hidden or visible
+            if (!this.doesAnnotationExistInSidebar(node.getId())) {
+                // If the annotation does not exist, add it to sidebar
                 this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item");
+            }
+            // Based on whether the annotation exists in mindmap or not, toggle the visibility
+            if (this.checkJsmindNode(node.getId())) {
+                $('#'+node.getId()).hide();
+            } else {
+                $('#'+node.getId()).show();
             }
         }
     }
@@ -816,18 +906,21 @@ class GuiSideBar {
      * @returns {boolean}
      */
     private checkJsmindNode(id:string):boolean {
-        var checkResult = false;
-        // Get the IDs of all annotations in the sidebar
-        var nodesInSidebar = $('.list-group-item').get().map((e) => e.id);
-
-        // If the annotation is in the sidebar, it should stay as it is
-        // Also, if the annotation is in jsMind, its state should also be as it is
-        if (nodesInSidebar.indexOf(id) != -1 || _jm.mind.nodes[id]) {
-            checkResult = true;
-        }
-        return checkResult;
+        return !!_jm.mind.nodes[id];
     }
 
+    /**
+     *Check whether the nodes already in the Annotations List in the left side or not
+     * @param id
+     * @returns {boolean}
+     */
+    private doesAnnotationExistInSidebar(id:string):boolean {
+        // Get the IDs of all annotations in the sidebar
+        var nodesInSidebar = $('.list-group-item').get().map(function (eachNode) {
+            return eachNode.id; 
+        });
+        return (nodesInSidebar.indexOf(id) != -1);
+    }
 
 }
 
@@ -873,6 +966,8 @@ var listPdf = new ListPdf(new Array,new Array, dir);
 var listAnnotation = new ListAnnotations(dir);
 var util = new Utils();
 var contextMenu = new ContextMenu();
+var mindmapMenu:MindmapMenu;
+
 /**
  * Main program, it is also called from the HTML file
  * @param data
@@ -894,18 +989,18 @@ function programCaller(data:any) {
                 theme:'primary',
                 editable:true
             }
-            var baseMindmap = {
+            var mindmap = {
                 "meta":{
-                    "name":"jsMind Example",
+                    "name":"jsMind",
                     "version":"0.2"
                 },
                 "format":"node_tree",
-                "data":{"id":"root","topic":"jsMind","children": [] }
+                "data":{"id":"root","topic":"Root","children": [] }
             };
 
-            //this will find the cache json in order to not to lose already created jsmind tree json file
-            var mindmap = JSON.parse(window.localStorage.getItem('json_data')) || baseMindmap;
             _jm = jsMind.show(options, mindmap);
+            mindmapMenu = new MindmapMenu(_jm);
+            mindmapMenu.setListeners();
 
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
@@ -984,23 +1079,20 @@ function programCaller(data:any) {
             break;
 
         case "copyMenu":
-            var contextMenu = new ContextMenu();
             contextMenu.actionCopy();
             break;
         case "pasteMenu":
-            var contextMenu = new ContextMenu();
             contextMenu.actionPaste();
             break;
         case "openPDFMenu":
-            var contextMenu = new ContextMenu();
             contextMenu.actionOpenPdf(dir);
             break;
         case "cancelMenu":
-            var contextMenu = new ContextMenu();
             contextMenu.actionCancel();
             break;
-
-
 	}
 }
 
+function menuAction(action:string, data:string) {
+    mindmapMenu[action](data);
+}

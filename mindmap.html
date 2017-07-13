@@ -25,22 +25,20 @@
             <li>
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Project<b class="caret"></b></a>
                 <ul class="dropdown-menu">
-                    <li><a href="javascript:prompt_info('under construction')">New Project</a></li>
-                    <li><a href="javascript:prompt_info('under construction')">Open Location</a></li>
+                    <li><a href="javascript:alert('under construction')">New Project</a></li>
+                    <li><a href="javascript:alert('under construction')">Open Location</a></li>
 
                 </ul>
             </li>
             <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Files<b class="caret"></b></a>
                 <ul class="dropdown-menu">
-                    <li><a href="javascript:open_empty()">New Mind Map</a></li>
-                    <li><a href="javascript:open_json()">Open Existing</a></li>
-                    <li><a href="javascript:open_json()">Open File</a></li>
-                    <li><a href="javascript:save_freemind_file()">Save Mind Map</a></li>
-                    <li><a href="javascript:save_file()">Save As</a></li>
+                    <li><a href="javascript:menuAction('newMap')">New MindMap</a></li>
+                    <li><a href="javascript:menuAction('selectFile')">Open Existing MindMap</a></li>
+                    <li><a href="javascript:menuAction('saveFile', 'mm')">Save As Freemind (.mm)</a></li>
+                    <li><a href="javascript:menuAction('saveFile', 'jm')">Save As jsMind (.jm)</a></li>
                     <li><a href="javascript:myCloseConfirmation()">Close Mind Map</a></li>
                     <li><a href="javascript:myExitConfirmation()">Exit</a></li>
-
                 </ul>
             </li>
 			<li>
@@ -117,6 +115,7 @@
         </ul>
     </div>
 </div>
+<input style="display:none" type="file" id="mindmap-chooser" accept=".jm,.mm" />
 
 	<!-- Latest compiled and minified JavaScript -->
 	<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
@@ -127,13 +126,14 @@
 	<script type="text/javascript" src='/scimappr/build/assets/jsmind.screenshot.js'></script>
 	
 	<!-- MindMap Main Code Section -->
-	<script type="text/javascript" src='/scimappr/build/assets/mindmap.js'></script><!-- For mindmap in general Purposes -->
-	<script type="text/javascript" src='/scimappr/build/assets/mindmap.main.js'></script>
-	<!-- <script type="text/javascript" src="/scimappr/build/assets/mindmap.gui.js"></script> <!-- For GUI Purposes -->
- -->		
-	<script type="text/javascript" src="/scimappr/build/assets/pdf.js"></script> <!-- Main Code of PDF.js -->
-	<!-- <script type="text/javascript" src="/scimappr/build/assets/mindmap.pdf.js"></script> <!-- For PDF Parsing Purposes -->
- -->
+    <!-- For mindmap in general Purposes -->
+    <!-- <script type="text/javascript" src='/scimappr/build/assets/mindmap.js'></script> -->
+    <script type="text/javascript" src='/scimappr/build/assets/mindmap.main.js'></script>
+    <!-- For GUI Purposes -->
+    <!-- <script type="text/javascript" src="/scimappr/build/assets/mindmap.gui.js"></script> --> 		
+    <script type="text/javascript" src="/scimappr/build/assets/pdf.js"></script> <!-- Main Code of PDF.js -->
+    <!-- For PDF Parsing Purposes -->
+    <!-- <script type="text/javascript" src="/scimappr/build/assets/mindmap.pdf.js"></script> -->
     <script type="text/javascript" src='/scimappr/build/assets/sha1-min.js'></script> <!-- For PDF ID Using  sha1 Hash Purposes -->
 	
 </body>
