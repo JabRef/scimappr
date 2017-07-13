@@ -103,15 +103,13 @@
     </div>  
 </div>
 <div id="push"></div>
-<div id="tempBoard" style="display: none"></div>
-<div id="clipBoard" style="display: none"></div>
 <div id="contextMenu" style="display: none; z-index: 200">
     <div class="dropdown open">
         <ul class="dropdown-menu">
             <li class="actionOpenPdf" onClick="programCaller('openPDFMenu')">Open PDF</li>
             <li class="actionCopy" onClick="programCaller('copyMenu')">Copy</li>
-            <li onClick="programCaller('pasteMenu')">Paste</li>
-            <li onClick="programCaller('cancelMenu')">Cancel</li>
+            <li class="actionPaste" onClick="programCaller('pasteMenu')">Paste</li>
+            <li class="actionCancel" onClick="programCaller('cancelMenu')">Cancel</li>
         </ul>
     </div>
 </div>

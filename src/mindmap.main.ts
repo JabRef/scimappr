@@ -297,7 +297,7 @@ class ListPdf {
                     //List all pdfs file names in the page
                     var counter:number = 0;
                     $(data).find("a:contains(" + ".pdf" + ")").each(function (success) {
-				        promise = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/","doc/");
+				        promise = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/","docs/");
                         promises.push(promise);
 				    });
                     resolve(promises);
@@ -649,6 +649,8 @@ class Utils {
 class ContextMenu {
 
     private listData: string[];
+    private tempBoard: string;
+    private clipBoard: string;
 
     public setListData(input:string[]){
         this.listData = new Array;
@@ -661,22 +663,34 @@ class ContextMenu {
         return this.listData;
     }
 
+    public setTempBoard(input:string) {
+        this.tempBoard = input;
+    }
+
+    public setClipBoard() {
+        this.clipBoard = this.tempBoard;
+    }
+
+    public getClipBoard():string {
+        return this.clipBoard;
+    }
+
     public actionCopy() {
-        document.querySelector('#clipBoard').innerHTML = document.querySelector('#tempBoard').innerHTML;
+        this.setClipBoard();
         $('#contextMenu').hide();
     }
 
     public actionPaste() {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
-        var topic = document.querySelector('#clipBoard').innerHTML;
-        _jm.add_node(selected_node, Date.now(), topic);
+        var topic = this.getClipBoard();
+        _jm.add_node(selected_node, Date.now(), topic, '', '');
         $('#contextMenu').hide();
     }
 
     public actionOpenPdf(directory:string) {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var pdfViewer:string = "/scimappr/build/pdf.js/web/viewer.html";
-        var fileName:string = "?File=" + directory.replace("doc", "") + selected_node.pdfid;
+        var fileName:string = "?File=" + directory.replace("docs", "") + selected_node.pdfid;
         window.open(pdfViewer + fileName,"_blank","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
         $('#contextMenu').hide();
     }
@@ -824,7 +838,7 @@ class GuiSideBar {
     /**
      *Listener of the jsmind. It will update the main jsmind tree in any changes
      */
-    public setJsmindListener() {
+    public setJsmindListener(contextMenu:ContextMenu) {
         // Update the annotation panel on each MindMap event
         _jm.add_event_listener(function () {
          	jmnodes = document.querySelectorAll('jmnode');
@@ -832,9 +846,14 @@ class GuiSideBar {
          		// Not efficient, need to figure out another way to do this.
          		jmnodes[i].oncontextmenu = function (e) {
          			e.preventDefault();
+         			if (e.target.getAttribute('pdfid') != 'undefined') {
+         			    $('#contextMenu .actionOpenPdf').show();
+         			} else {
+         			    $('#contextMenu .actionOpenPdf').hide();
+         			}
          			$('#contextMenu').show();
          			$('#contextMenu').css({ position: 'absolute', marginLeft: e.clientX, marginTop: e.clientY-45 });
-         			document.querySelector('#tempBoard').innerHTML = e.target.innerHTML;
+         			contextMenu.setTempBoard(e.target.innerHTML);
          		}
          	}
 
@@ -961,7 +980,7 @@ interface NodesObject extends Array<object> {
 // ========================================================= //
 
 var node:any;
-var dir:string = "/scimappr/doc";
+var dir:string = "/scimappr/docs";
 var listPdf = new ListPdf(new Array,new Array, dir);
 var listAnnotation = new ListAnnotations(dir);
 var util = new Utils();
@@ -1013,7 +1032,7 @@ function programCaller(data:any) {
             console.log(listPdf.getLastMod());
 
             var guiSideBar = new GuiSideBar();
-            guiSideBar.setJsmindListener();
+            guiSideBar.setJsmindListener(contextMenu);
 
             break;
         /**

@@ -256,7 +256,7 @@ var ListPdf = (function () {
                     //List all pdfs file names in the page
                     var counter = 0;
                     $(data).find("a:contains(" + ".pdf" + ")").each(function (success) {
-                        promise = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/", "doc/");
+                        promise = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/", "docs/");
                         promises.push(promise);
                     });
                     resolve(promises);
@@ -578,20 +578,29 @@ var ContextMenu = (function () {
     ContextMenu.prototype.getListData = function () {
         return this.listData;
     };
+    ContextMenu.prototype.setTempBoard = function (input) {
+        this.tempBoard = input;
+    };
+    ContextMenu.prototype.setClipBoard = function () {
+        this.clipBoard = this.tempBoard;
+    };
+    ContextMenu.prototype.getClipBoard = function () {
+        return this.clipBoard;
+    };
     ContextMenu.prototype.actionCopy = function () {
-        document.querySelector('#clipBoard').innerHTML = document.querySelector('#tempBoard').innerHTML;
+        this.setClipBoard();
         $('#contextMenu').hide();
     };
     ContextMenu.prototype.actionPaste = function () {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
-        var topic = document.querySelector('#clipBoard').innerHTML;
-        _jm.add_node(selected_node, Date.now(), topic);
+        var topic = this.getClipBoard();
+        _jm.add_node(selected_node, Date.now(), topic, '', '');
         $('#contextMenu').hide();
     };
     ContextMenu.prototype.actionOpenPdf = function (directory) {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var pdfViewer = "/scimappr/build/pdf.js/web/viewer.html";
-        var fileName = "?File=" + directory.replace("doc", "") + selected_node.pdfid;
+        var fileName = "?File=" + directory.replace("docs", "") + selected_node.pdfid;
         window.open(pdfViewer + fileName, "_blank", "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
         $('#contextMenu').hide();
     };
@@ -726,7 +735,7 @@ var GuiSideBar = (function () {
     /**
      *Listener of the jsmind. It will update the main jsmind tree in any changes
      */
-    GuiSideBar.prototype.setJsmindListener = function () {
+    GuiSideBar.prototype.setJsmindListener = function (contextMenu) {
         // Update the annotation panel on each MindMap event
         _jm.add_event_listener(function () {
             jmnodes = document.querySelectorAll('jmnode');
@@ -734,9 +743,15 @@ var GuiSideBar = (function () {
                 // Not efficient, need to figure out another way to do this.
                 jmnodes[i].oncontextmenu = function (e) {
                     e.preventDefault();
+                    if (e.target.getAttribute('pdfid') != 'undefined') {
+                        $('#contextMenu .actionOpenPdf').show();
+                    }
+                    else {
+                        $('#contextMenu .actionOpenPdf').hide();
+                    }
                     $('#contextMenu').show();
                     $('#contextMenu').css({ position: 'absolute', marginLeft: e.clientX, marginTop: e.clientY - 45 });
-                    document.querySelector('#tempBoard').innerHTML = e.target.innerHTML;
+                    contextMenu.setTempBoard(e.target.innerHTML);
                 };
             }
             var nodes = $('.list-group-item').get();
@@ -825,7 +840,7 @@ var GuiSideBar = (function () {
 // Function Section
 // ========================================================= //
 var node;
-var dir = "/scimappr/doc";
+var dir = "/scimappr/docs";
 var listPdf = new ListPdf(new Array, new Array, dir);
 var listAnnotation = new ListAnnotations(dir);
 var util = new Utils();
@@ -871,7 +886,7 @@ function programCaller(data) {
             console.log(listPdf.getListPdf());
             console.log(listPdf.getLastMod());
             var guiSideBar = new GuiSideBar();
-            guiSideBar.setJsmindListener();
+            guiSideBar.setJsmindListener(contextMenu);
             break;
         /**
          *When the refresh pdf called
