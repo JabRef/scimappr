@@ -1,3 +1,5 @@
+//import $ from 'jquery-ts';
+//var $ = require("./jquery-ts");
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
@@ -8,8 +10,6 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-//import $ from 'jquery-ts';
-//var $ = require("./jquery-ts");
 // ========================================================= //
 // Class Section
 // ========================================================= //
@@ -22,10 +22,11 @@ var Nodes = (function () {
      * @param nodeId
      * @param nodeTopic
      */
-    function Nodes(nodeId, nodeTopic, fileName) {
+    function Nodes(nodeId, nodeTopic, fileName, pagenumber) {
         this.id = nodeId;
         this.topic = nodeTopic;
         this.filename = fileName;
+        this.pagenumber = pagenumber;
     }
     /**
      *
@@ -55,11 +56,33 @@ var Nodes = (function () {
     Nodes.prototype.getTopic = function () {
         return this.topic;
     };
+    /**
+     *
+     * @param filename
+     */
     Nodes.prototype.setFileName = function (filename) {
         this.filename = filename;
     };
+    /**
+     *
+     * @returns {string}
+     */
     Nodes.prototype.getFileName = function () {
         return this.filename;
+    };
+    /**
+     *
+     * @param pagenumber
+     */
+    Nodes.prototype.setPageNumber = function (pagenumber) {
+        this.pagenumber = pagenumber;
+    };
+    /**
+     *
+     * @returns {number}
+     */
+    Nodes.prototype.getPageNumber = function () {
+        return this.pagenumber;
     };
     /**
      * set Node to be Draggable
@@ -84,6 +107,7 @@ var Nodes = (function () {
      * @returns {DropObject}
      */
     Nodes.prototype.setDroppable = function () {
+        var _this = this;
         var temp = {
             drop: function (ev, ui) {
                 var selected_node = _jm.get_selected_node(); // select node when mouseover
@@ -95,9 +119,42 @@ var Nodes = (function () {
                 var topic = ui.helper.prevObject.context.innerHTML;
                 var pdfid = ui.helper.prevObject.context.title;
                 var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid);
+                if ((pdfid != "undefine") || (pdfid != null)) {
+                    var pdfViewer = "/scimappr/build/pdf.js/web/viewer.html";
+                    var fileName = "?File=" + "/scimappr/" + pdfid;
+                    var link = pdfViewer + fileName;
+                    var linkElement = document.createElement("a");
+                    linkElement.setAttribute("href", link);
+                    linkElement.setAttribute("target", "_blank");
+                    var left = ui.offset.left;
+                    var top = ui.offset.top;
+                    var position = "absolute";
+                    var zIndex = 5;
+                    linkElement.setAttribute("style", "z-index:" + zIndex);
+                    var imgElement = document.createElement("img");
+                    imgElement.setAttribute("id", nodeid);
+                    imgElement.setAttribute("src", "/scimappr/build/img/pdf.png");
+                    linkElement.appendChild(imgElement);
+                    var selection = _this.findNodeByAttribute("nodeid", nodeid);
+                    selection.appendChild(linkElement);
+                }
             }
         };
         return temp;
+    };
+    /**
+     * Find Node by its attribute (nodeid, topic, pdfid)
+     * @param attr
+     * @param val
+     * @returns {any}
+     */
+    Nodes.prototype.findNodeByAttribute = function (attr, val) {
+        var All = document.getElementsByTagName('jmnode');
+        for (var i = 0; i < All.length; i++) {
+            if (All[i].getAttribute(attr) == val) {
+                return All[i];
+            }
+        }
     };
     return Nodes;
 }());
@@ -304,12 +361,13 @@ var Annotation = (function () {
      * @param annotSubtype
      * @param annotTitle
      */
-    function Annotation(fileName, annotId, annotTopic, annotSubtype, annotTitle) {
+    function Annotation(fileName, annotId, annotTopic, annotSubtype, annotTitle, pagenumber) {
         this.fileName = fileName;
         this.id = annotId;
         this.topic = annotTopic;
         this.subtype = annotSubtype;
         this.title = annotTitle;
+        this.pagenumber = pagenumber;
     }
     /**
      *Set pdf file name for this annotation
@@ -382,6 +440,12 @@ var Annotation = (function () {
     Annotation.prototype.getTitle = function () {
         return this.title;
     };
+    Annotation.prototype.setPageNumber = function (pagenumber) {
+        this.pagenumber = pagenumber;
+    };
+    Annotation.prototype.getPageNumber = function () {
+        return this.pagenumber;
+    };
     return Annotation;
 }());
 /**
@@ -434,7 +498,9 @@ var ListAnnotations = (function (_super) {
         var ignoreList = ['Link'];
         var items = [];
         var processAnot = new Promise(function (resolve, reject) {
+            var pageNumber = 0;
             pages.forEach(function (annotations) {
+                pageNumber++;
                 annotations.forEach(function (annotation) {
                     if ((annotation.contents != "") && (annotation.subtype == "Popup")) {
                         items.push({
@@ -442,7 +508,8 @@ var ListAnnotations = (function (_super) {
                             id: util.getHashFunction(fileName + " " + annotation.contents),
                             subtype: annotation.subtype,
                             title: annotation.title,
-                            topic: annotation.contents
+                            topic: annotation.contents,
+                            pagenumber: pageNumber
                         });
                         this.listPdfFilesAnnotations = annotation.contents;
                     }
@@ -595,6 +662,9 @@ var ContextMenu = (function () {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var topic = this.getClipBoard();
         _jm.add_node(selected_node, Date.now(), topic, '', '');
+        var node = new Nodes(Date.now().toString(), topic, "", 0);
+        var tempNode = node.findNodeByAttribute("nodeid", node.getId());
+        tempNode.removeChild(tempNode.getElementsByTagName("a"));
         $('#contextMenu').hide();
     };
     ContextMenu.prototype.actionOpenPdf = function (directory) {
@@ -726,8 +796,8 @@ var GuiSideBar = (function () {
      * @param id
      * @param topic
      */
-    GuiSideBar.prototype.setGuiOnAppend = function (id, topic, filename) {
-        var node = new Nodes(id, topic, filename);
+    GuiSideBar.prototype.setGuiOnAppend = function (id, topic, filename, pagenumber) {
+        var node = new Nodes(id, topic, filename, pagenumber);
         if (this.checkJsmindNode(node.getId()) == false) {
             this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item");
         }
@@ -773,8 +843,8 @@ var GuiSideBar = (function () {
         var node;
         for (var i = 0; i < objekt.length; i++) {
             var input = objekt[i];
-            var annot = new Annotation(input["filename"], input["id"], input["topic"], input["subtype"], input["title"]);
-            node = new Nodes(annot.getId(), annot.getTopic(), annot.getFileName());
+            var annot = new Annotation(input["filename"], input["id"], input["topic"], input["subtype"], input["title"], input["pagenumber"]);
+            node = new Nodes(annot.getId(), annot.getTopic(), annot.getFileName(), annot.getPageNumber());
             // All annotations must exist in the Sidebar, whether hidden or visible
             if (!this.doesAnnotationExistInSidebar(node.getId())) {
                 // If the annotation does not exist, add it to sidebar
@@ -808,7 +878,12 @@ var GuiSideBar = (function () {
      * @param className
      */
     GuiSideBar.prototype.setDynamicHtmlContent = function (node, appendToName, className) {
-        this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
+        var htmlContent = document.createElement("li");
+        htmlContent.setAttribute("id", node.getId());
+        htmlContent.setAttribute("pagenumber", node.getPageNumber());
+        htmlContent.innerHTML = node.getTopic();
+        this.basicHtmlContent = htmlContent;
+        //this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
         $(this.basicHtmlContent).appendTo(appendToName).draggable(node.setDraggable());
         $(this.basicHtmlContent).droppable(node.setDroppable());
         document.getElementById(node.getId()).className += className;
@@ -856,7 +931,7 @@ function programCaller(data) {
          * For the first initilization for the program
          */
         case "init":
-            node = new Nodes("", "", "");
+            node = new Nodes("", "", "", 0);
             //to set nodes as draggable and droppable
             $(".drag").draggable(node.setDraggable());
             $(".drop").droppable(node.setDroppable());

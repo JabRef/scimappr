@@ -24,16 +24,18 @@ class Nodes {
 	private id:string;
 	private topic:string;
 	private filename:string;
+	private pagenumber:number;
 
     /**
      *
      * @param nodeId
      * @param nodeTopic
      */
-	constructor(nodeId:string, nodeTopic:string, fileName:string) {
+	constructor(nodeId:string, nodeTopic:string, fileName:string, pagenumber:number) {
 		this.id = nodeId;
 		this.topic = nodeTopic;
 		this.filename = fileName;
+		this.pagenumber = pagenumber;
 	}
 
     /**
@@ -68,12 +70,36 @@ class Nodes {
         return this.topic;
     }
 
+    /**
+     *
+     * @param filename
+     */
     public setFileName(filename:string) {
         this.filename = filename;
     }
 
+    /**
+     *
+     * @returns {string}
+     */
     public getFileName():string {
         return this.filename;
+    }
+
+    /**
+     *
+     * @param pagenumber
+     */
+    public setPageNumber(pagenumber:number) {
+        this.pagenumber = pagenumber;
+    }
+
+    /**
+     *
+     * @returns {number}
+     */
+    public getPageNumber():number {
+        return this.pagenumber;
     }
 
     /**
@@ -111,10 +137,50 @@ class Nodes {
 			var topic = ui.helper.prevObject.context.innerHTML;
 			var pdfid = ui.helper.prevObject.context.title;
 			var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid);
-		}
+
+                if((pdfid != "undefine") || (pdfid != null)) {
+
+                    var pdfViewer:string = "/scimappr/build/pdf.js/web/viewer.html";
+                    var fileName:string = "?File=" + "/scimappr/" + pdfid;
+                    var link:string = pdfViewer + fileName;
+
+                    var linkElement:any = document.createElement("a")
+                    linkElement.setAttribute("href", link);
+                    linkElement.setAttribute("target", "_blank");
+                    var left:any = ui.offset.left;
+                    var top:any = ui.offset.top;
+                    var position:any = "absolute";
+                    var zIndex:any = 5;
+                    linkElement.setAttribute("style", "z-index:" + zIndex);
+
+                    var imgElement:any = document.createElement("img");
+                    imgElement.setAttribute("id", nodeid);
+                    imgElement.setAttribute("src", "/scimappr/build/img/pdf.png");
+
+                    linkElement.appendChild(imgElement);
+                    var selection = this.findNodeByAttribute("nodeid", nodeid);
+                    selection.appendChild(linkElement);
+                }
+
+		    }
         }
 
         return temp
+    }
+
+    /**
+     * Find Node by its attribute (nodeid, topic, pdfid)
+     * @param attr
+     * @param val
+     * @returns {any}
+     */
+    public findNodeByAttribute(attr:any, val:string):any {
+        var All:any = document.getElementsByTagName('jmnode');
+
+        for (var i = 0; i < All.length; i++)       {
+            if (All[i].getAttribute(attr) == val) { return All[i]; }
+        }
+
     }
 
 }
@@ -349,6 +415,7 @@ class Annotation {
 	private topic:string;
 	private subtype:string;
 	private title:string;
+	private pagenumber:number
 
     /**
      *
@@ -358,12 +425,13 @@ class Annotation {
      * @param annotSubtype
      * @param annotTitle
      */
-    constructor(fileName:string, annotId:string, annotTopic:string, annotSubtype:string, annotTitle:string) {
+    constructor(fileName:string, annotId:string, annotTopic:string, annotSubtype:string, annotTitle:string, pagenumber:number) {
         this.fileName = fileName;
         this.id = annotId;
         this.topic = annotTopic;
         this.subtype = annotSubtype;
         this.title = annotTitle;
+        this.pagenumber = pagenumber;
     }
 
     /**
@@ -447,6 +515,14 @@ class Annotation {
         return this.title;
     }
 
+    public setPageNumber(pagenumber:number) {
+        this.pagenumber = pagenumber;
+    }
+
+    public getPageNumber():number {
+        return this.pagenumber;
+    }
+ss
 }
 /**
  *
@@ -503,7 +579,9 @@ class ListAnnotations extends ListPdf {
         var ignoreList = ['Link'];
         var items = [];
         var processAnot = new Promise(function(resolve, reject) {
+            var pageNumber:number = 0;
             pages.forEach(annotations => {
+                pageNumber++;
             annotations.forEach(function(annotation){
                         if((annotation.contents != "") && (annotation.subtype == "Popup")) {
 			                items.push({
@@ -511,7 +589,8 @@ class ListAnnotations extends ListPdf {
                             id: util.getHashFunction(fileName + " " + annotation.contents),
                             subtype: annotation.subtype,
                             title: annotation.title,
-                            topic: annotation.contents
+                            topic: annotation.contents,
+                            pagenumber: pageNumber,
                         });
                         this.listPdfFilesAnnotations = annotation.contents;
                     }
@@ -684,6 +763,9 @@ class ContextMenu {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var topic = this.getClipBoard();
         _jm.add_node(selected_node, Date.now(), topic, '', '');
+        var node = new Nodes(Date.now().toString(), topic, "", 0);
+        var tempNode = node.findNodeByAttribute("nodeid", node.getId());
+        tempNode.removeChild(tempNode.getElementsByTagName("a"));
         $('#contextMenu').hide();
     }
 
@@ -718,7 +800,7 @@ class MindmapMenu {
         };
         this.jsMindObject.show(mindmap);
         // Reset the file selector
-        document.querySelector('#mindmap-chooser').value = '';
+        (<HTMLInputElement> document.querySelector('#mindmap-chooser')).value = '';
     }
 
     public saveFile(fileType:string) {
@@ -790,7 +872,7 @@ class MindmapMenu {
 class GuiSideBar {
 
     private basicHtmlTitle:string;
-    private basicHtmlContent:string;
+    private basicHtmlContent:any;
 
     /**
      * Initilize the Sidebar for the first time
@@ -804,10 +886,11 @@ class GuiSideBar {
 
         // Parse JSON File
 		var objekt = util.parseJsonFile(data);
+		var titleFile = "";
 
         for(var i = 0; i < objekt.length; i++) {
             var tempObject = objekt[i];
-            var titleFile = this.setDynamicHtmlTitle(util, tempObject["filename"], tempObject["filename"])
+            titleFile = this.setDynamicHtmlTitle(util, tempObject["filename"], tempObject["filename"])
         }
 
 	    $(titleFile).appendTo(".list-group");
@@ -828,8 +911,8 @@ class GuiSideBar {
      * @param id
      * @param topic
      */
-    public setGuiOnAppend(id:string, topic:string, filename:string) {
-        var node = new Nodes(id, topic, filename);
+    public setGuiOnAppend(id:string, topic:string, filename:string, pagenumber:number) {
+        var node = new Nodes(id, topic, filename, pagenumber);
         if(this.checkJsmindNode(node.getId()) == false) {
                 this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item");
         }
@@ -876,8 +959,8 @@ class GuiSideBar {
         var node;
         for(var i = 0; i < objekt.length; i++) {
             var input = objekt[i];
-            var annot = new Annotation(input["filename"], input["id"], input["topic"],input["subtype"], input["title"])
-            node = new Nodes(annot.getId(), annot.getTopic(), annot.getFileName());
+            var annot = new Annotation(input["filename"], input["id"], input["topic"],input["subtype"], input["title"], input["pagenumber"])
+            node = new Nodes(annot.getId(), annot.getTopic(), annot.getFileName(), annot.getPageNumber());
             // All annotations must exist in the Sidebar, whether hidden or visible
             if (!this.doesAnnotationExistInSidebar(node.getId())) {
                 // If the annotation does not exist, add it to sidebar
@@ -912,7 +995,12 @@ class GuiSideBar {
      * @param className
      */
     private setDynamicHtmlContent(node, appendToName:string, className:string) {
-        this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
+        var htmlContent = document.createElement("li");
+        htmlContent.setAttribute("id", node.getId());
+        htmlContent.setAttribute("pagenumber", node.getPageNumber());
+        htmlContent.innerHTML = node.getTopic();
+        this.basicHtmlContent = htmlContent;
+        //this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
         $(this.basicHtmlContent).appendTo(appendToName).draggable(node.setDraggable());
         $(this.basicHtmlContent).droppable(node.setDroppable());
         document.getElementById(node.getId()).className += className;
@@ -973,6 +1061,7 @@ interface NodesObject extends Array<object> {
 	topic:string;
 	subtype:string;
 	title:string;
+	pagenumber:number;
 }
 
 // ========================================================= //
@@ -997,7 +1086,7 @@ function programCaller(data:any) {
          * For the first initilization for the program
          */
 		case "init":
-            node = new Nodes("", "", "");
+            node = new Nodes("", "", "", 0);
             //to set nodes as draggable and droppable
             $(".drag").draggable(node.setDraggable());
             $(".drop").droppable(node.setDroppable());
