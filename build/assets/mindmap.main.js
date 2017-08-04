@@ -112,23 +112,25 @@ var Nodes = (function () {
             drop: function (ev, ui) {
                 var selected_node = _jm.get_selected_node(); // select node when mouseover
                 if (!selected_node) {
-                    prompt_info('please select a node first.');
+                    alert('please select a node first.');
                     return;
                 }
                 var nodeid = ui.helper.prevObject.context.id;
                 var topic = ui.helper.prevObject.context.innerHTML;
                 var pdfid = ui.helper.prevObject.context.title;
-                var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid);
+                var pagenumber = ui.helper.prevObject.context.value;
+                var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid, pagenumber);
+                /**
+                 * adding PDF image link inside MindMap
+                 */
                 if ((pdfid != "undefine") || (pdfid != null)) {
                     var pdfViewer = "/scimappr/build/pdf.js/web/viewer.html";
                     var fileName = "?File=" + "/scimappr/" + pdfid;
-                    var link = pdfViewer + fileName;
+                    var pageNumber = "#page=" + pagenumber.toString();
+                    var link = pdfViewer + fileName + pageNumber;
                     var linkElement = document.createElement("a");
                     linkElement.setAttribute("href", link);
                     linkElement.setAttribute("target", "_blank");
-                    var left = ui.offset.left;
-                    var top = ui.offset.top;
-                    var position = "absolute";
                     var zIndex = 5;
                     linkElement.setAttribute("style", "z-index:" + zIndex);
                     var imgElement = document.createElement("img");
@@ -778,9 +780,10 @@ var GuiSideBar = (function () {
         var util = new Utils();
         // Parse JSON File
         var objekt = util.parseJsonFile(data);
+        var titleFile = "";
         for (var i = 0; i < objekt.length; i++) {
             var tempObject = objekt[i];
-            var titleFile = this.setDynamicHtmlTitle(util, tempObject["filename"], tempObject["filename"]);
+            titleFile = this.setDynamicHtmlTitle(util, tempObject["filename"], tempObject["filename"]);
         }
         $(titleFile).appendTo(".list-group");
         this.setDynamicHtmlObject(objekt);
@@ -881,6 +884,7 @@ var GuiSideBar = (function () {
         var htmlContent = document.createElement("li");
         htmlContent.setAttribute("id", node.getId());
         htmlContent.setAttribute("pagenumber", node.getPageNumber());
+        htmlContent.value = node.getPageNumber();
         htmlContent.innerHTML = node.getTopic();
         this.basicHtmlContent = htmlContent;
         //this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
@@ -921,6 +925,7 @@ var listAnnotation = new ListAnnotations(dir);
 var util = new Utils();
 var contextMenu = new ContextMenu();
 var mindmapMenu;
+var guiSideBar = new GuiSideBar();
 /**
  * Main program, it is also called from the HTML file
  * @param data
@@ -958,17 +963,14 @@ function programCaller(data) {
                 listPdf.setListPdfFile(response[0]);
                 listPdf.setLastModDate(listPdf.getModDate(util, response[0]));
             });
-            console.log(listPdf.getListPdf());
-            console.log(listPdf.getLastMod());
-            var guiSideBar = new GuiSideBar();
+            //var guiSideBar = new GuiSideBar();
             guiSideBar.setJsmindListener(contextMenu);
             break;
         /**
-         *When the refresh pdf called
+         *When the refresh pdf is called
          */
         case "refresh":
             // Call Constructors for some classes
-            var guiSideBar = new GuiSideBar();
             var pdfNumberCounter = 0;
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
@@ -991,7 +993,7 @@ function programCaller(data) {
             });
             break;
         case "refreshAnnotation":
-            var guiSideBar = new GuiSideBar();
+            //var guiSideBar = new GuiSideBar();
             var pdfNumberCounter = 0;
             // change has flag, saying if files changed or not.
             // change[1] list of changed pdfs
@@ -1014,7 +1016,7 @@ function programCaller(data) {
                 }
             }
             else {
-                prompt_info("No Change in Annotation");
+                alert("No Change in Annotation");
             }
             break;
         case "copyMenu":

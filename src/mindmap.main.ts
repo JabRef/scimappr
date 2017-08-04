@@ -7,7 +7,6 @@ declare var $:any;
 declare var hex_sha1:any;
 
 declare var hex_hmac_sha1:any;
-declare function prompt_info(message:string): any;
 declare var _jm: {get_selected_node: Function, select_node: Function, show: Function, add_node: Function, mind:{nodes:Function}, add_event_listener:Function, get_data:Function};
 declare var jsMind:any;
 declare var jmnodes:any;
@@ -130,37 +129,40 @@ class Nodes {
             drop: (ev:Event, ui):string => {
 			var selected_node = _jm.get_selected_node(); // select node when mouseover
 			if(!selected_node){
-				prompt_info('please select a node first.');
+				alert('please select a node first.');
 				return;
 			}
 			var nodeid = ui.helper.prevObject.context.id;
 			var topic = ui.helper.prevObject.context.innerHTML;
 			var pdfid = ui.helper.prevObject.context.title;
-			var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid);
+			var pagenumber = ui.helper.prevObject.context.value;
+			var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid, pagenumber);
 
-                if((pdfid != "undefine") || (pdfid != null)) {
+            /**
+             * adding PDF image link inside MindMap
+             */
 
-                    var pdfViewer:string = "/scimappr/build/pdf.js/web/viewer.html";
-                    var fileName:string = "?File=" + "/scimappr/" + pdfid;
-                    var link:string = pdfViewer + fileName;
+            if((pdfid != "undefine") || (pdfid != null)) {
 
-                    var linkElement:any = document.createElement("a")
-                    linkElement.setAttribute("href", link);
-                    linkElement.setAttribute("target", "_blank");
-                    var left:any = ui.offset.left;
-                    var top:any = ui.offset.top;
-                    var position:any = "absolute";
-                    var zIndex:any = 5;
-                    linkElement.setAttribute("style", "z-index:" + zIndex);
+                var pdfViewer:string = "/scimappr/build/pdf.js/web/viewer.html";
+                var fileName:string = "?File=" + "/scimappr/" + pdfid;
+                var pageNumber:string =  "#page=" + pagenumber.toString();
+                var link:string = pdfViewer + fileName + pageNumber;
 
-                    var imgElement:any = document.createElement("img");
-                    imgElement.setAttribute("id", nodeid);
-                    imgElement.setAttribute("src", "/scimappr/build/img/pdf.png");
+                var linkElement:any = document.createElement("a")
+                linkElement.setAttribute("href", link);
+                linkElement.setAttribute("target", "_blank");
+                var zIndex:any = 5;
+                linkElement.setAttribute("style", "z-index:" + zIndex);
 
-                    linkElement.appendChild(imgElement);
-                    var selection = this.findNodeByAttribute("nodeid", nodeid);
-                    selection.appendChild(linkElement);
-                }
+                var imgElement:any = document.createElement("img");
+                imgElement.setAttribute("id", nodeid);
+                imgElement.setAttribute("src", "/scimappr/build/img/pdf.png");
+
+                linkElement.appendChild(imgElement);
+                var selection = this.findNodeByAttribute("nodeid", nodeid);
+                selection.appendChild(linkElement);
+            }
 
 		    }
         }
@@ -998,6 +1000,7 @@ class GuiSideBar {
         var htmlContent = document.createElement("li");
         htmlContent.setAttribute("id", node.getId());
         htmlContent.setAttribute("pagenumber", node.getPageNumber());
+        htmlContent.value = node.getPageNumber();
         htmlContent.innerHTML = node.getTopic();
         this.basicHtmlContent = htmlContent;
         //this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
@@ -1070,11 +1073,12 @@ interface NodesObject extends Array<object> {
 
 var node:any;
 var dir:string = "/scimappr/docs";
-var listPdf = new ListPdf(new Array,new Array, dir);
-var listAnnotation = new ListAnnotations(dir);
-var util = new Utils();
-var contextMenu = new ContextMenu();
+var listPdf:any = new ListPdf(new Array,new Array, dir);
+var listAnnotation:any = new ListAnnotations(dir);
+var util:any = new Utils();
+var contextMenu:any = new ContextMenu();
 var mindmapMenu:MindmapMenu;
+var guiSideBar:any = new GuiSideBar();
 
 /**
  * Main program, it is also called from the HTML file
@@ -1117,20 +1121,15 @@ function programCaller(data:any) {
                 listPdf.setLastModDate(listPdf.getModDate(util, response[0]));
             });
 
-            console.log(listPdf.getListPdf());
-            console.log(listPdf.getLastMod());
-
-            var guiSideBar = new GuiSideBar();
+            //var guiSideBar = new GuiSideBar();
             guiSideBar.setJsmindListener(contextMenu);
 
             break;
         /**
-         *When the refresh pdf called
+         *When the refresh pdf is called
          */
 		case "refresh":
             // Call Constructors for some classes
-
-            var guiSideBar = new GuiSideBar();
             var pdfNumberCounter:number = 0;
 
             //get PDF's lists
@@ -1158,7 +1157,7 @@ function programCaller(data:any) {
             break;
 
         case "refreshAnnotation":
-            var guiSideBar = new GuiSideBar();
+            //var guiSideBar = new GuiSideBar();
             var pdfNumberCounter:number = 0;
                 // change has flag, saying if files changed or not.
                 // change[1] list of changed pdfs
@@ -1181,7 +1180,7 @@ function programCaller(data:any) {
                 }
                 
             } else{
-                prompt_info("No Change in Annotation");
+                alert("No Change in Annotation");
             }
             
             break;
