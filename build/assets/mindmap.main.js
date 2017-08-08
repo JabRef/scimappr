@@ -1,5 +1,3 @@
-//import $ from 'jquery-ts';
-//var $ = require("./jquery-ts");
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
@@ -293,7 +291,7 @@ var ListPdf = (function () {
         for (var x = 0; x < list.length; x++) {
             if (newLastMod[x] != this.lastModDatePdfFiles[x]) {
                 stsChange = true;
-                listChange[x] = this.getListPdfFile(x);
+                listChange[indexChange] = this.getListPdfFile(x);
                 indexChange++;
             }
         }
@@ -771,7 +769,7 @@ var GuiSideBar = (function () {
     function GuiSideBar() {
     }
     /**
-     * Initilize the Sidebar for the first time
+     * Initilize the Sidebar for the first time or when Refresh
      * @param data
      */
     GuiSideBar.prototype.setGuiInit = function (data) {
@@ -789,21 +787,30 @@ var GuiSideBar = (function () {
         this.setDynamicHtmlObject(objekt);
     };
     /**
+     * Adding GUI on SideBar when refreshAnnotation is done
+     * @param object
+     */
+    GuiSideBar.prototype.setGuiOnAppend = function (object) {
+        this.setDynamicHtmlObject(object);
+    };
+    /**
      *Clear the side bar
      */
     GuiSideBar.prototype.resetSidebar = function () {
         $(".list-group").empty();
     };
     /**
-     * To add only one node into the sidebar
-     * @param id
-     * @param topic
-     */
-    GuiSideBar.prototype.setGuiOnAppend = function (id, topic, filename, pagenumber) {
-        var node = new Nodes(id, topic, filename, pagenumber);
-        if (this.checkJsmindNode(node.getId()) == false) {
-            this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item");
+    * check if the SideBar Nodes have existed
+    * if no then do refresh
+    * if yes then do refreshAnnotation
+    */
+    GuiSideBar.prototype.checkSideBar = function () {
+        var isSideBarExist = false;
+        var nodes = $('.list-group-item').get();
+        if (nodes.length != 0) {
+            isSideBarExist = true;
         }
+        return isSideBarExist;
     };
     /**
      *Listener of the jsmind. It will update the main jsmind tree in any changes
@@ -871,7 +878,7 @@ var GuiSideBar = (function () {
      */
     GuiSideBar.prototype.setDynamicHtmlTitle = function (util, id, fileName) {
         var pdfId = util.getHashFunction(id);
-        this.basicHtmlTitle = "<li id=" + pdfId + " " + "style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + fileName + "</li>";
+        this.basicHtmlTitle = "<li id=" + pdfId + " " + "class=pdf-title" + " " + "style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + fileName + "</li>";
         return this.basicHtmlTitle;
     };
     /**
@@ -970,20 +977,24 @@ function programCaller(data) {
          *When the refresh pdf is called
          */
         case "refresh":
-            // Call Constructors for some classes
-            var pdfNumberCounter = 0;
+            /**
+            * check if sidebar is existed, if yes then do refreshAnnotation
+            */
+            var isSideBarExist = guiSideBar.checkSideBar();
+            if (isSideBarExist) {
+                programCaller("refreshAnnotation");
+                break;
+            }
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
             guiSideBar.resetSidebar();
             // get annotation's lists
             Promise.all([pdfProcess]).then(function (response) {
                 listPdf.setListPdfFile(response[0]);
-                pdfNumberCounter = listPdf.getCount();
                 for (var i = 0; i < listPdf.getCount(); i++) {
                     var pdfPages = listPdf.getPdfPage(listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
-                    Promise.all([pdfPages]).then(function (responsePages) {
-                        pdfNumberCounter--;
-                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(pdfNumberCounter));
+                    Promise.all([pdfPages, pdfProcess, i]).then(function (responsePages) {
+                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[2]));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function (responseResult) {
                             var resultJson = responseResult[2];
                             guiSideBar.setGuiInit(resultJson);
@@ -993,8 +1004,6 @@ function programCaller(data) {
             });
             break;
         case "refreshAnnotation":
-            //var guiSideBar = new GuiSideBar();
-            var pdfNumberCounter = 0;
             // change has flag, saying if files changed or not.
             // change[1] list of changed pdfs
             // change[2] num of files changed
@@ -1002,15 +1011,13 @@ function programCaller(data) {
             var listChange = change[1];
             var numChange = change[2];
             if (change[0] == true) {
-                pdfNumberCounter = numChange;
                 for (var i = 0; i < numChange; i++) {
                     var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i]);
-                    Promise.all([pdfPages]).then(function (responsePages) {
-                        pdfNumberCounter--;
-                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(pdfNumberCounter));
+                    Promise.all([pdfPages, i]).then(function (responsePages) {
+                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[1]));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function (responseResult) {
                             var newNodes = JSON.parse(responseResult[2]);
-                            guiSideBar.setDynamicHtmlObject(newNodes);
+                            guiSideBar.setGuiOnAppend(newNodes);
                         });
                     });
                 }

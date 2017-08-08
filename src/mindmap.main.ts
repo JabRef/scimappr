@@ -1,6 +1,3 @@
-//import $ from 'jquery-ts';
-//var $ = require("./jquery-ts");
-
 declare var PDFJS:any;
 declare var Promise:any;
 declare var $:any;
@@ -340,7 +337,7 @@ class ListPdf {
         for(var x = 0; x < list.length; x++) {
             if(newLastMod[x] != this.lastModDatePdfFiles[x]) {
                 stsChange = true;
-                listChange[x] = this.getListPdfFile(x);
+                listChange[indexChange] = this.getListPdfFile(x);
                 indexChange++;
             }
         }
@@ -877,7 +874,7 @@ class GuiSideBar {
     private basicHtmlContent:any;
 
     /**
-     * Initilize the Sidebar for the first time
+     * Initilize the Sidebar for the first time or when Refresh
      * @param data
      */
     public setGuiInit(data:string) {
@@ -902,22 +899,34 @@ class GuiSideBar {
     }
 
     /**
+     * Adding GUI on SideBar when refreshAnnotation is done
+     * @param object
+     */
+    public setGuiOnAppend(object:any) {
+        this.setDynamicHtmlObject(object);
+    }
+
+    /**
      *Clear the side bar
      */
     public resetSidebar() {
         $(".list-group").empty();
     }
 
-    /**
-     * To add only one node into the sidebar
-     * @param id
-     * @param topic
+     /**
+     * check if the SideBar Nodes have existed
+     * if no then do refresh
+     * if yes then do refreshAnnotation
      */
-    public setGuiOnAppend(id:string, topic:string, filename:string, pagenumber:number) {
-        var node = new Nodes(id, topic, filename, pagenumber);
-        if(this.checkJsmindNode(node.getId()) == false) {
-                this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item");
+    public checkSideBar():boolean {
+        var isSideBarExist:boolean = false;
+        var nodes:any = $('.list-group-item').get();
+
+        if(nodes.length != 0) {
+            isSideBarExist = true;
         }
+
+        return isSideBarExist;
     }
 
     /**
@@ -957,7 +966,7 @@ class GuiSideBar {
      * Set the dynamic HTML for the input of the object
      * @param objekt
      */
-    public setDynamicHtmlObject(objekt:NodesObject) {
+    private setDynamicHtmlObject(objekt:NodesObject) {
         var node;
         for(var i = 0; i < objekt.length; i++) {
             var input = objekt[i];
@@ -986,7 +995,7 @@ class GuiSideBar {
      */
     private setDynamicHtmlTitle(util, id:string, fileName:string):string {
         var pdfId = util.getHashFunction(id);
-        this.basicHtmlTitle = "<li id=" + pdfId  + " " + "style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + fileName + "</li>";
+        this.basicHtmlTitle = "<li id=" + pdfId  + " " + "class=pdf-title" + " " +  "style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + fileName + "</li>";
         return this.basicHtmlTitle;
     }
 
@@ -1128,9 +1137,16 @@ function programCaller(data:any) {
         /**
          *When the refresh pdf is called
          */
-		case "refresh":
-            // Call Constructors for some classes
-            var pdfNumberCounter:number = 0;
+        case "refresh":
+        
+            /**
+            * check if sidebar is existed, if yes then do refreshAnnotation
+            */
+            var isSideBarExist:boolean = guiSideBar.checkSideBar();
+            if(isSideBarExist) {
+                programCaller("refreshAnnotation");
+                break;
+            } 
 
             //get PDF's lists
             var pdfProcess = listPdf.getPdf();
@@ -1139,12 +1155,10 @@ function programCaller(data:any) {
             // get annotation's lists
             Promise.all([pdfProcess]).then(function(response){
                 listPdf.setListPdfFile(response[0]);
-                pdfNumberCounter = listPdf.getCount();
                 for(var i = 0; i < listPdf.getCount(); i++) {
                     var pdfPages = listPdf.getPdfPage(listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
-                    Promise.all([pdfPages]).then(function(responsePages){
-                        pdfNumberCounter--;
-                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(pdfNumberCounter));
+                    Promise.all([pdfPages, pdfProcess, i]).then(function(responsePages){
+                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[2]));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function(responseResult){
                             var resultJson:string = responseResult[2];
                             guiSideBar.setGuiInit(resultJson);
@@ -1157,8 +1171,7 @@ function programCaller(data:any) {
             break;
 
         case "refreshAnnotation":
-            //var guiSideBar = new GuiSideBar();
-            var pdfNumberCounter:number = 0;
+            
                 // change has flag, saying if files changed or not.
                 // change[1] list of changed pdfs
                 // change[2] num of files changed
@@ -1166,15 +1179,13 @@ function programCaller(data:any) {
             var listChange:string[] = change[1];
             var numChange: number = change[2];
             if(change[0] == true) {
-                pdfNumberCounter = numChange;
                 for(var i = 0; i < numChange; i++) {
                     var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i]);
-                    Promise.all([pdfPages]).then(function(responsePages) {
-                        pdfNumberCounter--;
-                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(pdfNumberCounter));
+                    Promise.all([pdfPages, i]).then(function(responsePages) {
+                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[1]));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function(responseResult){
                             var newNodes:NodesObject = JSON.parse(responseResult[2]);
-                            guiSideBar.setDynamicHtmlObject(newNodes);
+                            guiSideBar.setGuiOnAppend(newNodes);
                         })
                     })
                 }
