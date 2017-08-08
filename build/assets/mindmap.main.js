@@ -662,9 +662,9 @@ var ContextMenu = (function () {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var topic = this.getClipBoard();
         _jm.add_node(selected_node, Date.now(), topic, '', '');
-        var node = new Nodes(Date.now().toString(), topic, "", 0);
-        var tempNode = node.findNodeByAttribute("nodeid", node.getId());
-        tempNode.removeChild(tempNode.getElementsByTagName("a"));
+        //var node = new Nodes(Date.now().toString(), topic, "", 0);
+        //var tempNode = node.findNodeByAttribute("nodeid", node.getId());
+        //tempNode.removeChild(tempNode.getElementsByTagName("a"));
         $('#contextMenu').hide();
     };
     ContextMenu.prototype.actionOpenPdf = function (directory) {
@@ -784,14 +784,14 @@ var GuiSideBar = (function () {
             titleFile = this.setDynamicHtmlTitle(util, tempObject["filename"], tempObject["filename"]);
         }
         $(titleFile).appendTo(".list-group");
-        this.setDynamicHtmlObject(objekt);
+        this.setDynamicHtmlObject(objekt, "init");
     };
     /**
      * Adding GUI on SideBar when refreshAnnotation is done
      * @param object
      */
     GuiSideBar.prototype.setGuiOnAppend = function (object) {
-        this.setDynamicHtmlObject(object);
+        this.setDynamicHtmlObject(object, "append");
     };
     /**
      *Clear the side bar
@@ -849,7 +849,7 @@ var GuiSideBar = (function () {
      * Set the dynamic HTML for the input of the object
      * @param objekt
      */
-    GuiSideBar.prototype.setDynamicHtmlObject = function (objekt) {
+    GuiSideBar.prototype.setDynamicHtmlObject = function (objekt, mode) {
         var node;
         for (var i = 0; i < objekt.length; i++) {
             var input = objekt[i];
@@ -858,7 +858,7 @@ var GuiSideBar = (function () {
             // All annotations must exist in the Sidebar, whether hidden or visible
             if (!this.doesAnnotationExistInSidebar(node.getId())) {
                 // If the annotation does not exist, add it to sidebar
-                this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item");
+                this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item", mode);
             }
             // Based on whether the annotation exists in mindmap or not, toggle the visibility
             if (this.checkJsmindNode(node.getId())) {
@@ -887,7 +887,7 @@ var GuiSideBar = (function () {
      * @param appendToName
      * @param className
      */
-    GuiSideBar.prototype.setDynamicHtmlContent = function (node, appendToName, className) {
+    GuiSideBar.prototype.setDynamicHtmlContent = function (node, appendToName, className, mode) {
         var htmlContent = document.createElement("li");
         htmlContent.setAttribute("id", node.getId());
         htmlContent.setAttribute("pagenumber", node.getPageNumber());
@@ -895,7 +895,15 @@ var GuiSideBar = (function () {
         htmlContent.innerHTML = node.getTopic();
         this.basicHtmlContent = htmlContent;
         //this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
-        $(this.basicHtmlContent).appendTo(appendToName).draggable(node.setDraggable());
+        if (mode == "init") {
+            $(this.basicHtmlContent).appendTo(appendToName);
+        }
+        else {
+            var temp = node.getFileName();
+            var pdfId = util.getHashFunction(temp);
+            $(this.basicHtmlContent).insertAfter('#' + pdfId);
+        }
+        $(this.basicHtmlContent).draggable(node.setDraggable());
         $(this.basicHtmlContent).droppable(node.setDroppable());
         document.getElementById(node.getId()).className += className;
         document.getElementById(node.getId()).title += node.getFileName();
@@ -1014,7 +1022,7 @@ function programCaller(data) {
                 for (var i = 0; i < numChange; i++) {
                     var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i]);
                     Promise.all([pdfPages, i]).then(function (responsePages) {
-                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[1]));
+                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listChange[responsePages[1]]);
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function (responseResult) {
                             var newNodes = JSON.parse(responseResult[2]);
                             guiSideBar.setGuiOnAppend(newNodes);

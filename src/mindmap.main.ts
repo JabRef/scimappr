@@ -762,9 +762,9 @@ class ContextMenu {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var topic = this.getClipBoard();
         _jm.add_node(selected_node, Date.now(), topic, '', '');
-        var node = new Nodes(Date.now().toString(), topic, "", 0);
-        var tempNode = node.findNodeByAttribute("nodeid", node.getId());
-        tempNode.removeChild(tempNode.getElementsByTagName("a"));
+        //var node = new Nodes(Date.now().toString(), topic, "", 0);
+        //var tempNode = node.findNodeByAttribute("nodeid", node.getId());
+        //tempNode.removeChild(tempNode.getElementsByTagName("a"));
         $('#contextMenu').hide();
     }
 
@@ -894,7 +894,7 @@ class GuiSideBar {
 
 	    $(titleFile).appendTo(".list-group");
 
-		this.setDynamicHtmlObject(objekt);
+		this.setDynamicHtmlObject(objekt, "init");
 
     }
 
@@ -903,7 +903,7 @@ class GuiSideBar {
      * @param object
      */
     public setGuiOnAppend(object:any) {
-        this.setDynamicHtmlObject(object);
+        this.setDynamicHtmlObject(object, "append");
     }
 
     /**
@@ -966,7 +966,7 @@ class GuiSideBar {
      * Set the dynamic HTML for the input of the object
      * @param objekt
      */
-    private setDynamicHtmlObject(objekt:NodesObject) {
+    private setDynamicHtmlObject(objekt:NodesObject, mode:string) {
         var node;
         for(var i = 0; i < objekt.length; i++) {
             var input = objekt[i];
@@ -975,7 +975,7 @@ class GuiSideBar {
             // All annotations must exist in the Sidebar, whether hidden or visible
             if (!this.doesAnnotationExistInSidebar(node.getId())) {
                 // If the annotation does not exist, add it to sidebar
-                this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item");
+                this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item", mode);
             }
             // Based on whether the annotation exists in mindmap or not, toggle the visibility
             if (this.checkJsmindNode(node.getId())) {
@@ -1005,7 +1005,7 @@ class GuiSideBar {
      * @param appendToName
      * @param className
      */
-    private setDynamicHtmlContent(node, appendToName:string, className:string) {
+    private setDynamicHtmlContent(node, appendToName:string, className:string, mode:string) {
         var htmlContent = document.createElement("li");
         htmlContent.setAttribute("id", node.getId());
         htmlContent.setAttribute("pagenumber", node.getPageNumber());
@@ -1013,7 +1013,16 @@ class GuiSideBar {
         htmlContent.innerHTML = node.getTopic();
         this.basicHtmlContent = htmlContent;
         //this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
-        $(this.basicHtmlContent).appendTo(appendToName).draggable(node.setDraggable());
+
+        if(mode == "init") {
+            $(this.basicHtmlContent).appendTo(appendToName);
+        } else{
+            var temp = node.getFileName();
+            var pdfId = util.getHashFunction(temp);
+            $(this.basicHtmlContent).insertAfter('#' + pdfId);
+        }
+
+        $(this.basicHtmlContent).draggable(node.setDraggable());
         $(this.basicHtmlContent).droppable(node.setDroppable());
         document.getElementById(node.getId()).className += className;
         document.getElementById(node.getId()).title += node.getFileName();
@@ -1182,7 +1191,7 @@ function programCaller(data:any) {
                 for(var i = 0; i < numChange; i++) {
                     var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i]);
                     Promise.all([pdfPages, i]).then(function(responsePages) {
-                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[1]));
+                        var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listChange[responsePages[1]]);
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function(responseResult){
                             var newNodes:NodesObject = JSON.parse(responseResult[2]);
                             guiSideBar.setGuiOnAppend(newNodes);
