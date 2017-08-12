@@ -7,6 +7,7 @@ declare var hex_hmac_sha1:any;
 declare var _jm: {get_selected_node: Function, select_node: Function, show: Function, add_node: Function, mind:{nodes:Function}, add_event_listener:Function, get_data:Function};
 declare var jsMind:any;
 declare var jmnodes:any;
+declare var PouchDB:any;
 
 // ========================================================= //
 // Class Section
@@ -14,7 +15,7 @@ declare var jmnodes:any;
 
 
 /**
- *  Declare for a new SidebarNode of Drag & Drop
+ * Used to set the Node's parameters in sidebar 
  */
 class Nodes {
 	private id:string;
@@ -129,37 +130,13 @@ class Nodes {
 				alert('please select a node first.');
 				return;
 			}
-			var nodeid = ui.helper.prevObject.context.id;
-			var topic = ui.helper.prevObject.context.innerHTML;
-			var pdfid = ui.helper.prevObject.context.title;
-			var pagenumber = ui.helper.prevObject.context.value;
-			var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid, pagenumber);
-
-            /**
-             * adding PDF image link inside MindMap
-             */
-
-            if((pdfid != "undefine") || (pdfid != null)) {
-
-                var pdfViewer:string = "/scimappr/build/pdf.js/web/viewer.html";
-                var fileName:string = "?File=" + "/scimappr/" + pdfid;
-                var pageNumber:string =  "#page=" + pagenumber.toString();
-                var link:string = pdfViewer + fileName + pageNumber;
-
-                var linkElement:any = document.createElement("a")
-                linkElement.setAttribute("href", link);
-                linkElement.setAttribute("target", "_blank");
-                var zIndex:any = 5;
-                linkElement.setAttribute("style", "z-index:" + zIndex);
-
-                var imgElement:any = document.createElement("img");
-                imgElement.setAttribute("id", nodeid);
-                imgElement.setAttribute("src", "/scimappr/build/img/pdf.png");
-
-                linkElement.appendChild(imgElement);
-                var selection = this.findNodeByAttribute("nodeid", nodeid);
-                selection.appendChild(linkElement);
-            }
+			var nodeid:string = ui.helper.prevObject.context.id;
+			var topic:string = ui.helper.prevObject.context.innerHTML;
+			var pdfid:string = ui.helper.prevObject.context.title;
+			var pagenumber:number = ui.helper.prevObject.context.value;
+            var node:any = _jm.add_node(selected_node, nodeid, topic, "", pdfid, pagenumber);
+            
+            this.addPdfButton(pdfid, nodeid, pagenumber);
 
 		    }
         }
@@ -180,6 +157,33 @@ class Nodes {
             if (All[i].getAttribute(attr) == val) { return All[i]; }
         }
 
+    }
+
+    /**
+    * adding PDF image link inside MindMap
+    */
+    private addPdfButton(pdfid:string, nodeid:string, pagenumber:number) {
+       
+            if((pdfid != "undefine") || (pdfid != null)) {
+
+                var pdfViewer:string = "/scimappr/build/pdf.js/web/viewer.html";
+                var fileName:string = "?File=" + "/scimappr/" + pdfid;
+                var pageNumber:string =  "#page=" + pagenumber.toString();
+                var link:string = pdfViewer + fileName + pageNumber;
+
+                var linkElement:any = document.createElement("a")
+                linkElement.setAttribute("href", link);
+                linkElement.setAttribute("target", "_blank");
+                linkElement.setAttribute("style", "z-index:5; float:left; padding-right:5px");
+
+                var imgElement:any = document.createElement("img");
+                imgElement.setAttribute("id", nodeid);
+                imgElement.setAttribute("src", "/scimappr/build/img/pdf.png");
+
+                linkElement.appendChild(imgElement);
+                var selection = this.findNodeByAttribute("nodeid", nodeid);
+                selection.appendChild(linkElement);
+            }
     }
 
 }
@@ -513,26 +517,31 @@ class Annotation {
     public getTitle():string {
         return this.title;
     }
-
+    /**
+     * Set the number of page that stores the Annotation
+     * @param pagenumber 
+     */
     public setPageNumber(pagenumber:number) {
         this.pagenumber = pagenumber;
     }
-
+    /**
+     * get the number of page that stores the Annotation
+     */
     public getPageNumber():number {
         return this.pagenumber;
     }
 ss
 }
+
 /**
- *
- *
+ * Used to manipulate list of annotations
  */
 class ListAnnotations extends ListPdf {
 
     private listPdfFilesAnnotations:string[];
 
     /**
-     *
+     * set The constructor when class is called
      * @param input
      */
     constructor(input:string) {
@@ -605,7 +614,7 @@ class ListAnnotations extends ListPdf {
 
 
 /**
- * Utilities that are using to support the main program
+ * Utilities that are used to support the main program
  */
 class Utils {
 
@@ -781,6 +790,9 @@ class ContextMenu {
     }
 }
 
+/**
+ * All Operations related to the Menu GUI
+ */
 class MindmapMenu {
     private jsMindObject: any;
 
@@ -930,6 +942,40 @@ class GuiSideBar {
     }
 
     /**
+     * Is used for searching the annotation using form and button search
+     * @param keyword 
+     * @param util 
+     */
+    public searchAnnotation(keyword:string, util:any) {
+        if(keyword == "") {
+            this.resetSidebar();
+            programCaller("refresh");
+        } else {
+            var listAnnotation:any = document.querySelectorAll(".list-group");
+            var list:any = listAnnotation[0].children;
+            var nodeObject:NodesObject = null;
+            var temp:any = [];
+            for(var i = 0; i < listAnnotation[0].children.length; i++) {
+                var value = listAnnotation[0].children[i].innerHTML;
+                if(value.toLowerCase().includes(keyword.toLowerCase()) == true ) {
+                    temp.push({
+                        filename: listAnnotation[0].children[i].title,
+                        id: listAnnotation[0].children[i].id,
+                        topic: value,
+                        subtype: "",
+                        title: "",
+                        pagenumber: listAnnotation[0].children[i].value
+                    });
+                }
+            }
+
+            // Set The GUI based on selected annotation
+            this.resetSidebar();
+            this.setGuiInit(util.setJsonFile(temp));
+        }
+    }
+
+    /**
      *Listener of the jsmind. It will update the main jsmind tree in any changes
      */
     public setJsmindListener(contextMenu:ContextMenu) {
@@ -1052,6 +1098,145 @@ class GuiSideBar {
 
 }
 
+/**
+ * All operations with Project
+ */
+class Project {
+    private projectName:string;
+    private projectLocation:string;
+    private projectPdfList:string[];
+
+    constructor() {
+        this.projectPdfList = new Array;
+    }
+
+    public setProjectName(input:string) {
+        this.projectName = input;
+    }
+
+    public getProjectName():string {
+        return this.projectName;
+    }
+
+    public setProjectPdfList(input:string[]) {
+        for(var i = 0; i < input.length; i++) {
+            this.projectPdfList[i] = input[i];
+        }
+    }
+
+    public getProjectPdfList():string[] {
+        return this.projectPdfList;
+    }
+
+    public createNewProject() {
+        var projectName = this.getProjectName();
+        var listFiles:string[] = this.getProjectPdfList();
+
+        for(var i = 0; i < listFiles.length; i++) {
+
+        }
+    }
+
+    public setNewProjectModal() {
+        $("#myModal").modal();
+        (<HTMLInputElement> document.getElementById("projectName")).value = "MyThesis";
+        (<HTMLInputElement> document.getElementById("projectPdf")).value = "";
+        
+        $("input:file").on("change", function(result){
+            var listFiles:string = "";
+            this.projectPdfList = [];
+            var numFiles = result.target.files.length;
+
+            for(var i = 0; i < numFiles; i++) {
+                if(i == 0) {
+                    listFiles += result.target.files[i].name;
+                } else {
+                    listFiles += ", " + result.target.files[i].name;
+                }
+                
+                this.projectPdfList[i] = result.target.files[i].name;
+            }
+
+            (<HTMLInputElement> document.getElementById("projectPdf")).value = listFiles;
+            console.log(result);
+            console.log((<HTMLInputElement> document.getElementById("projectPdfSelection")).value)
+            this.projectLocation = (<HTMLInputElement> document.getElementById("projectPdfSelection")).value;
+        });
+
+    }
+
+}
+
+/**
+ * All operations for PouchDB database
+ */
+class Database {
+
+    private dataBaseFile:any;
+    private dataBaseName:string;
+    private remoteCouch:boolean;
+
+    constructor(dataBaseName:string) {
+        this.dataBaseName = dataBaseName;
+    }
+
+    public createNewDatabase() {
+        this.setNewDatabase(this.dataBaseName);
+    }
+
+    public addNewDataToDatabase(input:object) {
+        this.addNewDataToDatabase(input);
+    }
+
+    public updateDataToDatabase(input:object) {
+        this.updateDatabase(input);
+    }
+
+    public getDocumentById(id:string) {
+        this.fetchDocumentById(id);
+    }
+
+    private setNewDatabase(dbName:string) {
+        var db = new PouchDB(dbName, {adapter: 'memory'});
+        var remoteCouch = false;
+        this.dataBaseFile = db;
+        this.remoteCouch = remoteCouch;  
+    }
+
+    private addNewDatabase(input:object) {
+        var dbName:string = this.dataBaseName;
+        this.dataBaseFile.put({_id: dbName, input}).then(function(response){
+            console.log(response);
+        }).catch(function(err){
+            console.log(err);
+        });
+    }
+
+    private updateDatabase(input:object) {
+        var dbName:string = this.dataBaseName;
+        this.dataBaseFile.get(dbName).then(function(doc){
+            return this.dataBaseFile.put({
+                _id: dbName,
+                _rev: doc._rev,
+                input
+            });
+        }).then(function(response){
+            console.log(response);
+        }).catch(function(err){
+            console.log(err);
+        });
+    }
+
+    private fetchDocumentById(docId:string) {
+        this.dataBaseFile.get(docId).then(function(doc){
+            console.log(doc);
+        }).catch(function(err){
+            console.log(err);
+        });
+    }
+
+}
+
 // ========================================================= //
 // Interface Section
 // ========================================================= //
@@ -1084,6 +1269,14 @@ interface NodesObject extends Array<object> {
 	title:string;
 	pagenumber:number;
 }
+/**
+ * Template for ProjectObject
+ */
+interface ProjectObject extends Array<object> {
+    projectname:string,
+    projectlocation:string,
+    projectfiles:string[];
+}
 
 // ========================================================= //
 // Function Section
@@ -1096,7 +1289,8 @@ var listAnnotation:any = new ListAnnotations(dir);
 var util:any = new Utils();
 var contextMenu:any = new ContextMenu();
 var mindmapMenu:MindmapMenu;
-var guiSideBar:any = new GuiSideBar();
+var guiSideBar:any = null;
+var project:any = null;
 
 /**
  * Main program, it is also called from the HTML file
@@ -1104,6 +1298,7 @@ var guiSideBar:any = new GuiSideBar();
  */
 function programCaller(data:any) {
 	switch(data) {
+
         /**
          * For the first initilization for the program
          */
@@ -1139,10 +1334,15 @@ function programCaller(data:any) {
                 listPdf.setLastModDate(listPdf.getModDate(util, response[0]));
             });
 
-            //var guiSideBar = new GuiSideBar();
+            // set listener for JsMind changes
+            guiSideBar = new GuiSideBar();
             guiSideBar.setJsmindListener(contextMenu);
 
+            // set Initialize for project
+            project = new Project();
+
             break;
+
         /**
          *When the refresh pdf is called
          */
@@ -1178,7 +1378,10 @@ function programCaller(data:any) {
             })
             
             break;
-
+        
+        /**
+         * When the refresh annotation is called
+         */
         case "refreshAnnotation":
             
                 // change has flag, saying if files changed or not.
@@ -1216,6 +1419,18 @@ function programCaller(data:any) {
             break;
         case "cancelMenu":
             contextMenu.actionCancel();
+            break;
+        case "searchAnnotation":
+            var keyword:string = (<HTMLInputElement> document.getElementById("annotSearch")).value;
+            guiSideBar.searchAnnotation(keyword, util);
+            break;
+        case "newProjectModal":
+            //set modal of the new project
+            project.setNewProjectModal();
+            break;
+        case "newProject":
+            //set routine for new project
+            project.createNewProject();
             break;
 	}
 }

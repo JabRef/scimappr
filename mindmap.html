@@ -32,7 +32,8 @@
             <li>
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Project<b class="caret"></b></a>
                 <ul class="dropdown-menu">
-                    <li><a data-toggle="modal" href="#myModal" data-target="#myModal">New Project</a></li>
+                    <!--<li><a data-toggle="modal" href="#myModal" data-target="#myModal">New Project</a></li> -->
+                    <li><a href="javascript:programCaller('newProjectModal')">New Project</a></li>
                     <li><a href="javascript:alert('under construction')">Open Project</a></li>
 
                 </ul>
@@ -102,6 +103,10 @@
                 <div id="ajax" class="demo"></div>
             </div>
             <div class="tab-pane" id="Annotation-tab" style="overflow-y: auto">
+                <form class="form-inline">
+                    <input type="text" id="annotSearch" class="form-control" name="annotSearch" style="max-width:100%;margin-left:10px; margin-top:10px;" placeholder="Search Annotation" autofocus>
+                    <button type="button" class="btn btn-lg" style="margin-top:10px" onclick="programCaller('searchAnnotation')"><img src="/scimappr/build/img/search.png"></img></button>
+                </form>
                 <ul class="list-group" style="overflow-y: auto">
 
                 </ul>
@@ -173,8 +178,11 @@
 	<!-- JSMind Code Section -->
 	<script type="text/javascript" src='/scimappr/build/assets/jsmind.js'></script>
 	<script type="text/javascript" src='/scimappr/build/assets/jsmind.draggable.js'></script>
-	<script type="text/javascript" src='/scimappr/build/assets/jsmind.screenshot.js'></script>
-	
+    <script type="text/javascript" src='/scimappr/build/assets/jsmind.screenshot.js'></script>
+    
+    <!-- Pouch DB Section -->
+    <script type="text/javascript" src='/scimappr/build/assets/pouchdb-6.3.4.min.js'></script>
+    
 	<!-- MindMap Main Code Section -->
     <!-- For mindmap in general Purposes -->
     <!-- <script type="text/javascript" src='/scimappr/build/assets/mindmap.js'></script> -->

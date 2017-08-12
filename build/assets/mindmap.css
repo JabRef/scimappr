@@ -24,18 +24,13 @@ body {
     padding : 5px 15px;
 }
 
-#pdf-input {
-    margin-top : 10px;
-    margin-bottom : 10px;
-}
-
-
 #main-wrapper {
          height: 100%;
          overflow-y: auto;
          padding: 50px 0 0px 0;
          border-left: 1px solid gray;
      }
+
 #sidebar-wrapper {
     height: 100%;
     padding: 50px 0 0px 0;
@@ -54,6 +49,12 @@ body {
     border-right: 0;
     border-top: 0;
 }
+
+#form-input {
+    margin-top:10px;
+    margin-bottom:10px;
+}
+
 @media (max-width: 992px) {
     body {
         padding-top: 0px;
