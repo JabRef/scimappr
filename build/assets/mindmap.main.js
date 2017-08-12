@@ -773,6 +773,15 @@ var MindmapMenu = (function () {
     };
     return MindmapMenu;
 }());
+var GuiEffect = (function () {
+    function GuiEffect() {
+    }
+    GuiEffect.prototype.effectShaking = function (id) {
+        var element = document.getElementById(id);
+        $(element).effect("shake");
+    };
+    return GuiEffect;
+}());
 /**
  * For the creation of the side bar
  */
@@ -995,6 +1004,28 @@ var Project = (function () {
     Project.prototype.getProjectPdfList = function () {
         return this.projectPdfList;
     };
+    Project.prototype.checkNewProject = function () {
+        var checkStatus = true;
+        var parm1 = document.getElementById("projectName").value;
+        var parm2 = document.getElementById("projectPdf").value;
+        $("p.ProjName").attr("hidden", true);
+        $("p.ProjPdf").attr("hidden", true);
+        if (parm1 == "") {
+            checkStatus = false;
+            $("p.ProjName").attr("hidden", false);
+        }
+        if (parm2 == "") {
+            checkStatus = false;
+            $("p.ProjPdf").attr("hidden", false);
+        }
+        if (checkStatus == false) {
+            var gui = new GuiEffect();
+            gui.effectShaking("myModal");
+        }
+        else {
+            $("#myModal").modal('hide');
+        }
+    };
     Project.prototype.createNewProject = function () {
         var projectName = this.getProjectName();
         var listFiles = this.getProjectPdfList();
@@ -1010,13 +1041,16 @@ var Project = (function () {
             this.projectPdfList = [];
             var numFiles = result.target.files.length;
             for (var i = 0; i < numFiles; i++) {
-                if (i == 0) {
-                    listFiles += result.target.files[i].name;
+                var typeFile = result.target.files[i].type;
+                if (typeFile == "application/pdf") {
+                    if (i == 0) {
+                        listFiles += result.target.files[i].name;
+                    }
+                    else {
+                        listFiles += ", " + result.target.files[i].name;
+                    }
+                    this.projectPdfList[i] = result.target.files[i].name;
                 }
-                else {
-                    listFiles += ", " + result.target.files[i].name;
-                }
-                this.projectPdfList[i] = result.target.files[i].name;
             }
             document.getElementById("projectPdf").value = listFiles;
             console.log(result);
@@ -1215,6 +1249,7 @@ function programCaller(data) {
             break;
         case "newProject":
             //set routine for new project
+            project.checkNewProject();
             project.createNewProject();
             break;
     }

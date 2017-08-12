@@ -876,6 +876,14 @@ class MindmapMenu {
     }
 }
 
+class GuiEffect {
+
+    public effectShaking(id:string) {
+        var element:any = document.getElementById(id);
+        $(element).effect("shake");
+    }
+
+}
 
 /**
  * For the creation of the side bar
@@ -1128,6 +1136,33 @@ class Project {
         return this.projectPdfList;
     }
 
+    public checkNewProject() {
+        var checkStatus:boolean = true;
+        var parm1:string = (<HTMLInputElement> document.getElementById("projectName")).value;
+        var parm2:string = (<HTMLInputElement> document.getElementById("projectPdf")).value;
+
+        $("p.ProjName").attr("hidden", true);
+        $("p.ProjPdf").attr("hidden", true);
+
+        if(parm1 == "") {
+            checkStatus = false;
+            $("p.ProjName").attr("hidden", false);
+        }
+
+        if(parm2 == "") {
+            checkStatus = false;
+            $("p.ProjPdf").attr("hidden", false);
+        }
+
+        if(checkStatus == false) {
+            var gui = new GuiEffect();
+            gui.effectShaking("myModal");
+        } else {
+            $("#myModal").modal('hide');
+        }
+
+    }
+
     public createNewProject() {
         var projectName = this.getProjectName();
         var listFiles:string[] = this.getProjectPdfList();
@@ -1148,18 +1183,20 @@ class Project {
             var numFiles = result.target.files.length;
 
             for(var i = 0; i < numFiles; i++) {
-                if(i == 0) {
-                    listFiles += result.target.files[i].name;
-                } else {
-                    listFiles += ", " + result.target.files[i].name;
+                var typeFile:any = result.target.files[i].type;
+                if(typeFile == "application/pdf") {
+                    if(i == 0) {
+                        listFiles += result.target.files[i].name;
+                    } else {
+                        listFiles += ", " + result.target.files[i].name;
+                    }
+                    this.projectPdfList[i] = result.target.files[i].name;
                 }
-                
-                this.projectPdfList[i] = result.target.files[i].name;
             }
 
             (<HTMLInputElement> document.getElementById("projectPdf")).value = listFiles;
             console.log(result);
-            console.log((<HTMLInputElement> document.getElementById("projectPdfSelection")).value)
+            console.log((<HTMLInputElement> document.getElementById("projectPdfSelection")).value);
             this.projectLocation = (<HTMLInputElement> document.getElementById("projectPdfSelection")).value;
         });
 
@@ -1430,6 +1467,7 @@ function programCaller(data:any) {
             break;
         case "newProject":
             //set routine for new project
+            project.checkNewProject();
             project.createNewProject();
             break;
 	}
