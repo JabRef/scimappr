@@ -150,19 +150,23 @@
 
             <div class="modal-body">
                 <form>
-                    <p style="color:red">Before Creating a new Project, please add project name and the directory for the new project </p>
+                    <p style="color:red; font-weight:bold">Before Creating a new Project, please add project name and the directory for the new project </p>
                     <p></p>
-                    Project Name: &nbsp;<input type="text" id="projectName" name="projectName" required autofocus><br><br>
+                    <p style="font-weight:bold; display:inline">Project Name: &nbsp; </p> <p style="color:red; display:inline"> *required </p>  
+                    <input type="text" id="projectName" class="form-control" name="projectName" placeholder="Project Name" required autofocus><br>
                     <!--Project Home:<input type="text" id="projectHome" name="projectHome" style="background: lightgray" required readonly><br> -->
-                    Project Pdfs: &nbsp;&nbsp;&nbsp;<input type="text" id="projectPdf" name="projectHome" style="background: lightgray" required readonly> &nbsp;
-                    <input type="file" id="projectPdfSelection" style="display:none" multiple accept=".pdf"/>
-                    <input type="button" value="Browse..." onclick="document.getElementById('projectPdfSelection').click();" />
+                    <p style="font-weight:bold; display:inline">Project PDF: &nbsp; </p> <p style="color:red; display:inline"> *required </p>
+                    <input type="text" id="projectPdf" class="form-control" name="projectPdf" placeholder="Project PDFs" style="background: lightgray" required readonly>
+                    <input type="file" id="projectPdfSelection" style="display:none" webkitdirectory directory multiple accept=".pdf"/>
+                    <input type="button" value="Browse..." style="margin-top:10px; margin-bottom:10px; font-weight:bold" onclick="document.getElementById('projectPdfSelection').click();" />
+                    <p hidden class="ProjName" style="color:red"> *Project Name must be fulfilled </p>
+                    <p hidden class="ProjPdf" style="color:red"> *PDF must be specified </p>
                 </form>
             </div>
 
             <div class = "modal-footer">
                 <button class="btn btn-default" data-dismiss="modal">Close</button>
-                <button id="buttonSave" type="button" class="btn btn-primary" data-dismiss="modal" onclick="programCaller('saveNewProject')">Save changes</button>
+                <button id="buttonSave" type="button" class="btn btn-primary" onclick="programCaller('newProject')">Save changes</button>
             </div>
 
         </div><!-- /.modal-content -->
