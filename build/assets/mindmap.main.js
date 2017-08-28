@@ -382,7 +382,7 @@ var ListPdf = (function () {
             // the browser to use the cached version of the file
             PDFJS.getDocument(filePath + "?" + Date.now()).then(function (pdf) {
                 var promises = [], promise;
-                for (var i = 1; i < pdf.numPages; i++) {
+                for (var i = 1; i <= pdf.numPages; i++) {
                     promise = pdf.getPage(i).then(function (page) {
                         return page.getAnnotations();
                     });
@@ -941,21 +941,6 @@ var Gui = (function () {
     Gui.prototype.windowAlert = function (msg) {
         alert(msg);
     };
-    /*public windowSaveFile(content:any, filename:string):any {
-        var uri = "data:application/octet-stream," + encodeURIComponent(content);
-        var link = document.createElement('a');
-        if (typeof link.download === 'string') {
-            document.body.appendChild(link); // Firefox requires the link to be in the body
-            link.download = filename;
-            link.href = uri;
-            link.click();
-            document.body.removeChild(link); // remove the link when done
-        } else {
-            location.replace(uri);
-        }
-        console.log(location);
-        return link.href
-    }*/
     /**
      * used for creating new project window
      * @param listPdf

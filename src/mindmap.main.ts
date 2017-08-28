@@ -445,7 +445,7 @@ class ListPdf {
         // the browser to use the cached version of the file
         PDFJS.getDocument(`${filePath}?${Date.now()}`).then(function (pdf) {
             var promises = [], promise;
-            for (var i = 1; i < pdf.numPages; i++) {
+            for (var i = 1; i <= pdf.numPages; i++) {
                 promise = pdf.getPage(i).then(function (page) {
                 return page.getAnnotations();
                 });
