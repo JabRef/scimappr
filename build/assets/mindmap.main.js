@@ -113,12 +113,14 @@ var Nodes = (function () {
                     alert('please select a node first.');
                     return;
                 }
-                var nodeid = ui.helper.prevObject.context.id;
-                var topic = ui.helper.prevObject.context.innerHTML;
-                var pdfid = ui.helper.prevObject.context.title;
-                var pagenumber = ui.helper.prevObject.context.value;
+                var nodeid = ui.helper.prevObject[0].id;
+                var topic = ui.helper.prevObject[0].innerHTML;
+                var pdfid = ui.helper.prevObject[0].title;
+                var pagenumber = ui.helper.prevObject[0].value;
+                var directory = ui.helper.prevObject[0].href;
                 var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid, pagenumber);
                 _this.addPdfButton(pdfid, nodeid, pagenumber);
+                project.setProjectStatus('edited');
             }
         };
         return temp;
@@ -142,8 +144,9 @@ var Nodes = (function () {
     */
     Nodes.prototype.addPdfButton = function (pdfid, nodeid, pagenumber) {
         if ((pdfid != "undefine") || (pdfid != null)) {
-            var pdfViewer = "/scimappr/build/pdf.js/web/viewer.html";
-            var fileName = "?File=" + "/scimappr/" + pdfid;
+            var pdfViewer = "./build/pdf.js/web/viewer.html";
+            //var fileName:string = "?File=" + "./" + pdfid;
+            var fileName = "?file=" + pdfid;
             var pageNumber = "#page=" + pagenumber.toString();
             var link = pdfViewer + fileName + pageNumber;
             var linkElement = document.createElement("a");
@@ -152,7 +155,7 @@ var Nodes = (function () {
             linkElement.setAttribute("style", "z-index:5; float:left; padding-right:5px");
             var imgElement = document.createElement("img");
             imgElement.setAttribute("id", nodeid);
-            imgElement.setAttribute("src", "/scimappr/build/img/pdf.png");
+            imgElement.setAttribute("src", "./build/img/pdf.png");
             linkElement.appendChild(imgElement);
             var selection = this.findNodeByAttribute("nodeid", nodeid);
             selection.appendChild(linkElement);
@@ -214,6 +217,20 @@ var ListPdf = (function () {
      * @param listFile
      * @returns {Array}
      */
+    ListPdf.prototype.getModDateFs = function (util, location, listFile) {
+        var counter = 0;
+        var modDateList = [];
+        for (var x = 0; x < listFile.length; x++) {
+            modDateList.push(util.getLastModFs(location, listFile[x]));
+        }
+        return modDateList;
+    };
+    /**
+     * extract the all last modifyed date information from the pdf file list
+     * @param util
+     * @param listFile
+     * @returns {Array}
+     */
     ListPdf.prototype.getModDate = function (util, listFile) {
         var counter = 0;
         var modDateList = [];
@@ -250,6 +267,10 @@ var ListPdf = (function () {
      */
     ListPdf.prototype.getPdf = function () {
         var result = this.getPdfFiles(this.directory);
+        return result;
+    };
+    ListPdf.prototype.getPdfFromFs = function () {
+        var result = this.readPdfInDirectory(this.directory);
         return result;
     };
     /**
@@ -300,7 +321,31 @@ var ListPdf = (function () {
         return [stsChange, listChange, indexChange];
     };
     /**
-     * This is the promisse to get file names from the given directory
+     * reading all pdf files in the specified directory
+     * @param path
+     */
+    ListPdf.prototype.readPdfInDirectory = function (path) {
+        var process = new Promise(function (resolve, reject) {
+            var promises = [], promise;
+            var fs = require("fs");
+            fs.readdir(path, function (err, filenames) {
+                if (err) {
+                    alert("error reading directory");
+                    return;
+                }
+                filenames.forEach(function (filename) {
+                    if (filename.indexOf(".pdf") != -1) {
+                        promise = filename;
+                        promises.push(promise);
+                    }
+                });
+                resolve(promises);
+            });
+        });
+        return process;
+    };
+    /**
+     * This is the promise to get file names from the given directory in server
      * @param inputURL
      * @returns {any}
      */
@@ -624,6 +669,19 @@ var Utils = (function () {
         return lastModifiedDate;
     };
     /**
+     * The real method in order to get the last modified date from the given URL (using fs)
+     * @param url
+     * @returns {any}
+     */
+    Utils.prototype.getLastModFs = function (location, url) {
+        var lastModifiedDate;
+        var fs = require('fs');
+        fs.stat(location + "\\" + url, function (err, stats) {
+            lastModifiedDate = stats.mtime;
+        });
+        return lastModifiedDate;
+    };
+    /**
      * Comparison function in order to understand whether the pdf file is changed or not
      * @param lstMod1
      * @param lstMod2
@@ -635,6 +693,52 @@ var Utils = (function () {
             stsResult = true;
         }
         return stsResult;
+    };
+    Utils.prototype.writeAnyTypeFile = function (path, input, name, type) {
+        var fs = require('fs');
+        var buffer = new Buffer(input);
+        fs.open(path + "\\" + name + type, 'w', function (err, fd) {
+            if (err) {
+                throw 'error opening file: ' + err;
+            }
+            fs.write(fd, buffer, 0, buffer.length, null, function (err) {
+                if (err)
+                    throw 'error writing file: ' + err;
+                fs.close(fd, function () {
+                    console.log('file has been written to ' + path + "\\" + name + "." + type);
+                });
+            });
+        });
+    };
+    Utils.prototype.writeJsonFile = function (path, input, name) {
+        var fs = require('fs');
+        var buffer = new Buffer(input);
+        fs.open(path + "\\" + name + ".json", 'w', function (err, fd) {
+            if (err) {
+                throw 'error opening file: ' + err;
+            }
+            fs.write(fd, buffer, 0, buffer.length, null, function (err) {
+                if (err)
+                    throw 'error writing file: ' + err;
+                fs.close(fd, function () {
+                    console.log('file has been written to ' + path + "\\" + name + ".json");
+                });
+            });
+        });
+    };
+    Utils.prototype.appendJsonFile = function (path, input, name) {
+        var fs = require('fs');
+        var buffer = new Buffer(input);
+        fs.open(path + "\\" + name + ".json", 'w', function (err, fd) {
+            if (err) {
+                throw 'error opening file: ' + err;
+            }
+            fs.appendFile(path + "\\" + name + ".json", buffer, function (err) {
+                if (err)
+                    throw err;
+                console.log('Data has been appended to ' + path + "\\" + name + ".json");
+            });
+        });
     };
     return Utils;
 }());
@@ -666,10 +770,11 @@ var ContextMenu = (function () {
         this.setClipBoard();
         $('#contextMenu').hide();
     };
-    ContextMenu.prototype.actionPaste = function () {
+    ContextMenu.prototype.actionPaste = function (project) {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var topic = this.getClipBoard();
         _jm.add_node(selected_node, Date.now(), topic, '', '');
+        project.setProjectStatus('edited');
         //var node = new Nodes(Date.now().toString(), topic, "", 0);
         //var tempNode = node.findNodeByAttribute("nodeid", node.getId());
         //tempNode.removeChild(tempNode.getElementsByTagName("a"));
@@ -677,9 +782,17 @@ var ContextMenu = (function () {
     };
     ContextMenu.prototype.actionOpenPdf = function (directory) {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
-        var pdfViewer = "/scimappr/build/pdf.js/web/viewer.html";
-        var fileName = "?File=" + directory.replace("docs", "") + selected_node.pdfid;
-        window.open(pdfViewer + fileName, "_blank", "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
+        var pdfViewer = "./build/pdf.js/web/viewer.html";
+        var fileName = "?file=" + selected_node.pdfid;
+        var page = "#page=" + selected_node.index;
+        window.open(pdfViewer + fileName + page, "_blank", "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
+        $('#contextMenu').hide();
+    };
+    ContextMenu.prototype.actionOpenPdfUserDefine = function (directory) {
+        var selected_node = _jm.get_selected_node();
+        var shell = require('electron').shell;
+        var fileName = selected_node.pdfid;
+        shell.openItem(fileName);
         $('#contextMenu').hide();
     };
     ContextMenu.prototype.actionCancel = function () {
@@ -694,7 +807,13 @@ var MindmapMenu = (function () {
     function MindmapMenu(jsMindObject) {
         this.jsMindObject = jsMindObject;
     }
-    MindmapMenu.prototype.newMap = function () {
+    MindmapMenu.prototype.setFileTypeSave = function (input) {
+        this.fileTypeSave = input;
+    };
+    MindmapMenu.prototype.getFileTypeSave = function () {
+        return this.fileTypeSave;
+    };
+    MindmapMenu.prototype.newMap = function (project) {
         var mindmap = {
             "meta": {
                 "name": "jsMind",
@@ -704,35 +823,40 @@ var MindmapMenu = (function () {
             "data": { "id": "root", "topic": "Root", "children": [] }
         };
         this.jsMindObject.show(mindmap);
-        // Reset the file selector
-        document.querySelector('#mindmap-chooser').value = '';
+        document.querySelector('#mindmap-chooser').value = ''; // Reset the file selector
+        if ((project != null) || (project != undefined)) {
+            project.setProjectStatus('edited');
+        }
     };
-    MindmapMenu.prototype.saveFile = function (fileType) {
+    MindmapMenu.prototype.saveFile = function (fileType, project, util) {
         var mind_data;
+        var mind_object = this.getJsMindData();
+        this.setFileTypeSave(fileType);
         if (fileType === 'jm') {
-            mind_data = this.jsMindObject.get_data();
+            mind_data = mind_object.get_data();
         }
         else {
-            mind_data = this.jsMindObject.get_data('freemind');
+            mind_data = mind_object.get_data('freemind');
         }
         var mind_str = (fileType === 'jm') ? jsMind.util.json.json2string(mind_data) : mind_data.data;
-        var file_name = prompt("Enter file name", mind_data.meta.name || 'jsMind');
-        if (!file_name) {
-            return;
-        }
-        if (fileType === 'jm') {
-            jsMind.util.file.save(mind_str, 'text/jsmind', file_name + '.jm');
-        }
-        else {
-            jsMind.util.file.save(mind_str, 'text/xml', file_name + '.mm');
-        }
+        util.writeAnyTypeFile(project.getProjectLocation(), mind_str, project.getProjectName(), fileType);
+        project.setProjectSavedFileLocation(project.getProjectLocation() + "\\" + project.getProjectName() + "." + fileType);
+        project.setSaveProject(util);
     };
-    MindmapMenu.prototype.selectFile = function () {
+    MindmapMenu.prototype.getJsMindData = function () {
+        var mindmapData;
+        mindmapData = this.jsMindObject;
+        return mindmapData;
+    };
+    MindmapMenu.prototype.selectFile = function (project) {
         var file_input = document.getElementById('mindmap-chooser');
         file_input.click();
     };
-    MindmapMenu.prototype.setListeners = function () {
+    MindmapMenu.prototype.setOpenFileListener = function (input) {
         var mindMapChooser = document.getElementById('mindmap-chooser');
+        if ((input != null) || input != undefined) {
+            mindMapChooser = input;
+        }
         mindMapChooser.addEventListener('change', function (event) {
             var files = mindMapChooser.files;
             if (files.length <= 0) {
@@ -773,26 +897,126 @@ var MindmapMenu = (function () {
     };
     return MindmapMenu;
 }());
-var GuiEffect = (function () {
-    function GuiEffect() {
+/**
+ * for GUI operations in general (except the gui sidebar)
+ */
+var Gui = (function () {
+    function Gui() {
     }
-    GuiEffect.prototype.effectShaking = function (id) {
+    Gui.prototype.setGuiInitialize = function (mindmapMenu) {
+        //to set nodes as draggable and droppable
+        $(".drag").draggable(node.setDraggable());
+        $(".drop").droppable(node.setDroppable());
+        // Render existing MindMap
+        var options = {
+            container: 'jsmind_container',
+            theme: 'primary',
+            editable: true
+        };
+        var mindmap = {
+            "meta": {
+                "name": "jsMind",
+                "version": "0.2"
+            },
+            "format": "node_tree",
+            "data": { "id": "root", "topic": "Root", "children": [] }
+        };
+        _jm = jsMind.show(options, mindmap);
+        mindmapMenu = new MindmapMenu(_jm);
+        mindmapMenu.setOpenFileListener();
+        return mindmapMenu;
+    };
+    /**
+     * used for creating confirmation window
+     * @param msg
+     */
+    Gui.prototype.windowConfirmation = function (msg) {
+        var result = confirm(msg);
+        return result;
+    };
+    /**
+     * used for creating alert window
+     * @param msg
+     */
+    Gui.prototype.windowAlert = function (msg) {
+        alert(msg);
+    };
+    /*public windowSaveFile(content:any, filename:string):any {
+        var uri = "data:application/octet-stream," + encodeURIComponent(content);
+        var link = document.createElement('a');
+        if (typeof link.download === 'string') {
+            document.body.appendChild(link); // Firefox requires the link to be in the body
+            link.download = filename;
+            link.href = uri;
+            link.click();
+            document.body.removeChild(link); // remove the link when done
+        } else {
+            location.replace(uri);
+        }
+        console.log(location);
+        return link.href
+    }*/
+    /**
+     * used for creating new project window
+     * @param listPdf
+     */
+    Gui.prototype.windowNewProject = function (listPdf) {
+        var pathName = "";
+        var dirProcess = null;
+        var listFiles = "";
+        $("#myModal").modal();
+        document.getElementById("projectName").value = "MyThesis";
+        document.getElementById("projectPdf").value = "";
+        var promise = new Promise(function (resolve, reject) {
+            $("input:file").on("change", function (result) {
+                var lastResult = new Array;
+                pathName = result.target.files[0].path;
+                listPdf.setDirectory(pathName);
+                dirProcess = listPdf.getPdfFromFs();
+                lastResult.push(pathName);
+                Promise.all([dirProcess]).then(function (result) {
+                    var temp = result[0];
+                    var arrayList = [];
+                    for (var i = 0; i < temp.length; i++) {
+                        if (i == 0) {
+                            listFiles += temp[i];
+                        }
+                        else {
+                            listFiles += ", " + temp[i];
+                        }
+                        arrayList[i] = temp[i];
+                    }
+                    document.getElementById("projectPdf").value = listFiles;
+                    lastResult.push(arrayList);
+                    resolve(lastResult);
+                });
+            });
+        });
+        return promise;
+    };
+    /**
+    * Used for creating shaking effect into modal
+    * @param id
+    */
+    Gui.prototype.effectShaking = function (id) {
         var element = document.getElementById(id);
         $(element).effect("shake");
     };
-    return GuiEffect;
+    return Gui;
 }());
 /**
- * For the creation of the side bar
+ * For the creation of the side bar GUI
  */
-var GuiSideBar = (function () {
+var GuiSideBar = (function (_super) {
+    __extends(GuiSideBar, _super);
     function GuiSideBar() {
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     /**
      * Initilize the Sidebar for the first time or when Refresh
      * @param data
      */
-    GuiSideBar.prototype.setGuiInit = function (data) {
+    GuiSideBar.prototype.setGuiInit = function (data, directory) {
         $("#loading-data").remove();
         $("#drag").remove();
         var util = new Utils();
@@ -803,21 +1027,21 @@ var GuiSideBar = (function () {
             var tempObject = objekt[i];
             titleFile = this.setDynamicHtmlTitle(util, tempObject["filename"], tempObject["filename"]);
         }
-        $(titleFile).appendTo(".list-group");
-        this.setDynamicHtmlObject(objekt, "init");
+        $(titleFile).appendTo("#annotation-group");
+        this.setDynamicHtml(objekt, "init", directory);
     };
     /**
      * Adding GUI on SideBar when refreshAnnotation is done
      * @param object
      */
-    GuiSideBar.prototype.setGuiOnAppend = function (object) {
-        this.setDynamicHtmlObject(object, "append");
+    GuiSideBar.prototype.setGuiOnAppend = function (object, directory) {
+        this.setDynamicHtml(object, "append", directory);
     };
     /**
      *Clear the side bar
      */
     GuiSideBar.prototype.resetSidebar = function () {
-        $(".list-group").empty();
+        $("#annotation-group").empty();
     };
     /**
     * check if the SideBar Nodes have existed
@@ -826,24 +1050,24 @@ var GuiSideBar = (function () {
     */
     GuiSideBar.prototype.checkSideBar = function () {
         var isSideBarExist = false;
-        var nodes = $('.list-group-item').get();
+        var nodes = $('.drag').get();
         if (nodes.length != 0) {
             isSideBarExist = true;
         }
         return isSideBarExist;
     };
     /**
-     * Is used for searching the annotation using form and button search
+     * Is used for searching the annotation using a form and button search
      * @param keyword
      * @param util
      */
-    GuiSideBar.prototype.searchAnnotation = function (keyword, util) {
+    GuiSideBar.prototype.searchAnnotation = function (keyword, util, directory) {
         if (keyword == "") {
             this.resetSidebar();
             programCaller("refresh");
         }
         else {
-            var listAnnotation = document.querySelectorAll(".list-group");
+            var listAnnotation = document.querySelectorAll("#annotation-group");
             var list = listAnnotation[0].children;
             var nodeObject = null;
             var temp = [];
@@ -862,7 +1086,7 @@ var GuiSideBar = (function () {
             }
             // Set The GUI based on selected annotation
             this.resetSidebar();
-            this.setGuiInit(util.setJsonFile(temp));
+            this.setGuiInit(util.setJsonFile(temp), directory);
         }
     };
     /**
@@ -887,22 +1111,37 @@ var GuiSideBar = (function () {
                     contextMenu.setTempBoard(e.target.innerHTML);
                 };
             }
-            var nodes = $('.list-group-item').get();
-            nodes.forEach(function (node) {
+            var nodes = $('#annotation-group').get();
+            var children = nodes[0].children;
+            for (var i = 0; i < children.length; i++) {
+                node = children[i];
                 if (_jm.mind.nodes[node.id]) {
                     $('#' + node.id).hide();
                 }
                 else {
                     $('#' + node.id).show();
                 }
-            });
+            }
         });
+    };
+    /**
+     * Set Treeview based on input data in JSON Format
+     * @param input
+     */
+    GuiSideBar.prototype.setTreeListener = function (input) {
+        $('#tree').treeview({ data: input });
+    };
+    /**
+     * Clear Treeview
+     */
+    GuiSideBar.prototype.resetTreeView = function () {
+        $('#tree').treeview({ data: "" });
     };
     /**
      * Set the dynamic HTML for the input of the object
      * @param objekt
      */
-    GuiSideBar.prototype.setDynamicHtmlObject = function (objekt, mode) {
+    GuiSideBar.prototype.setDynamicHtml = function (objekt, mode, directory) {
         var node;
         for (var i = 0; i < objekt.length; i++) {
             var input = objekt[i];
@@ -911,7 +1150,7 @@ var GuiSideBar = (function () {
             // All annotations must exist in the Sidebar, whether hidden or visible
             if (!this.doesAnnotationExistInSidebar(node.getId())) {
                 // If the annotation does not exist, add it to sidebar
-                this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item", mode);
+                this.setDynamicHtmlContent(node, "#annotation-group", "list-group-item drag", mode, directory);
             }
             // Based on whether the annotation exists in mindmap or not, toggle the visibility
             if (this.checkJsmindNode(node.getId())) {
@@ -940,14 +1179,14 @@ var GuiSideBar = (function () {
      * @param appendToName
      * @param className
      */
-    GuiSideBar.prototype.setDynamicHtmlContent = function (node, appendToName, className, mode) {
+    GuiSideBar.prototype.setDynamicHtmlContent = function (node, appendToName, className, mode, directory) {
         var htmlContent = document.createElement("li");
         htmlContent.setAttribute("id", node.getId());
         htmlContent.setAttribute("pagenumber", node.getPageNumber());
         htmlContent.value = node.getPageNumber();
         htmlContent.innerHTML = node.getTopic();
+        htmlContent.title = directory + "\\" + node.getFileName();
         this.basicHtmlContent = htmlContent;
-        //this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
         if (mode == "init") {
             $(this.basicHtmlContent).appendTo(appendToName);
         }
@@ -958,8 +1197,7 @@ var GuiSideBar = (function () {
         }
         $(this.basicHtmlContent).draggable(node.setDraggable());
         $(this.basicHtmlContent).droppable(node.setDroppable());
-        document.getElementById(node.getId()).className += className;
-        document.getElementById(node.getId()).title += node.getFileName();
+        document.getElementById(node.getId()).className += " " + className;
     };
     /**
      *Check whether the nodes already in the jsmind tree in the right side or not
@@ -982,29 +1220,85 @@ var GuiSideBar = (function () {
         return (nodesInSidebar.indexOf(id) != -1);
     };
     return GuiSideBar;
-}());
+}(Gui));
 /**
  * All operations with Project
  */
 var Project = (function () {
     function Project() {
         this.projectPdfList = new Array;
+        this.projectStatus = "noedit";
     }
+    /**
+     * to save the project name
+     * @param input
+     */
     Project.prototype.setProjectName = function (input) {
         this.projectName = input;
     };
+    /**
+     * to get the project name
+     */
     Project.prototype.getProjectName = function () {
         return this.projectName;
     };
+    /**
+     * to save the project location
+     * @param input
+     */
+    Project.prototype.setProjectLocation = function (input) {
+        this.projectLocation = input;
+    };
+    /**
+     * to get the project location
+     */
+    Project.prototype.getProjectLocation = function () {
+        return this.projectLocation;
+    };
+    /**
+     * to save list of pdf files of a project
+     * @param input
+     */
     Project.prototype.setProjectPdfList = function (input) {
         for (var i = 0; i < input.length; i++) {
             this.projectPdfList[i] = input[i];
         }
     };
+    /**
+     * to get the list of pdf files of a project
+     */
     Project.prototype.getProjectPdfList = function () {
         return this.projectPdfList;
     };
-    Project.prototype.checkNewProject = function () {
+    /**
+     * to set the status of the project (edited or noedit)
+     * @param input
+     */
+    Project.prototype.setProjectStatus = function (input) {
+        this.projectStatus = input;
+    };
+    /**
+     * to get the status of the project
+     */
+    Project.prototype.getProjectStatus = function () {
+        return this.projectStatus;
+    };
+    /**
+     * to save the file (.mm or .jm) location
+     */
+    Project.prototype.setProjectSavedFileLocation = function (input) {
+        this.projectSavedFileLocation = input;
+    };
+    /**
+     * to get the file (.mm or .jm) location
+     */
+    Project.prototype.getProjectSavedFileLocation = function () {
+        return this.projectSavedFileLocation;
+    };
+    /**
+     * to validate & check the requirements for new project
+     */
+    Project.prototype.checkNewProject = function (gui) {
         var checkStatus = true;
         var parm1 = document.getElementById("projectName").value;
         var parm2 = document.getElementById("projectPdf").value;
@@ -1019,113 +1313,232 @@ var Project = (function () {
             $("p.ProjPdf").attr("hidden", false);
         }
         if (checkStatus == false) {
-            var gui = new GuiEffect();
             gui.effectShaking("myModal");
         }
         else {
             $("#myModal").modal('hide');
         }
+        return checkStatus;
     };
-    Project.prototype.createNewProject = function () {
-        var projectName = this.getProjectName();
-        var listFiles = this.getProjectPdfList();
-        for (var i = 0; i < listFiles.length; i++) {
+    /**
+     * when new project modal is opened
+     * @param listPdf
+     */
+    Project.prototype.setNewProjectModal = function (listPdf) {
+        var self = this;
+        var gui = new Gui;
+        var promise = gui.windowNewProject(listPdf);
+        Promise.all([promise]).then(function (result) {
+            var tempResult = result[0];
+            self.setProjectLocation(tempResult[0]);
+            self.setProjectPdfList(tempResult[1]);
+        });
+    };
+    /**
+     * When save button is pressed in new project modal
+     * @param util
+     * @param guiSideBar
+     * @param listPdf
+     */
+    Project.prototype.createNewProject = function (util, guiSideBar, listPdf) {
+        this.setProjectName(document.getElementById("projectName").value);
+        this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), "");
+        this.saveTreeView(util, guiSideBar, listPdf, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList());
+        this.setProjectStatus("edited");
+        programCaller('refresh');
+    };
+    /**
+     * to save project
+     * @param util
+     */
+    Project.prototype.setSaveProject = function (util) {
+        var msg = this.getProjectLocation();
+        this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), this.getProjectSavedFileLocation());
+        this.setProjectStatus('noedit');
+        return msg;
+    };
+    /**
+     * Used for saving project and creating file (.json) in local
+     * @param util
+     * @param projectName
+     * @param projectLoc
+     * @param listFiles
+     */
+    Project.prototype.saveProject = function (util, projectName, projectLoc, listFiles, projectSavedFile) {
+        var project = [];
+        var annotation = [];
+        var correspondingnode = [];
+        var itemResult = [];
+        var nodes = [];
+        var counter = 0;
+        // to convert JSON from Object to array file
+        var jsMindData = mindmapMenu.getJsMindData();
+        var nodesJSON = jsMindData.mind.nodes;
+        for (var x in nodesJSON) {
+            nodes.push(nodesJSON[x]);
         }
-    };
-    Project.prototype.setNewProjectModal = function () {
-        $("#myModal").modal();
-        document.getElementById("projectName").value = "MyThesis";
-        document.getElementById("projectPdf").value = "";
-        $("input:file").on("change", function (result) {
-            var listFiles = "";
-            this.projectPdfList = [];
-            var numFiles = result.target.files.length;
-            for (var i = 0; i < numFiles; i++) {
-                var typeFile = result.target.files[i].type;
-                if (typeFile == "application/pdf") {
-                    if (i == 0) {
-                        listFiles += result.target.files[i].name;
-                    }
-                    else {
-                        listFiles += ", " + result.target.files[i].name;
-                    }
-                    this.projectPdfList[i] = result.target.files[i].name;
+        // to populate the annotation section from .JSON file
+        for (var i = 0; i < nodes.length; i++) {
+            var temp = nodes[i];
+            correspondingnode = [];
+            if (temp.children.length == 0) {
+                correspondingnode.push("");
+            }
+            else {
+                for (var j = 0; j < temp.children.length; j++) {
+                    correspondingnode.push([
+                        temp.children[j].id
+                    ]);
                 }
             }
-            document.getElementById("projectPdf").value = listFiles;
-            console.log(result);
-            console.log(document.getElementById("projectPdfSelection").value);
-            this.projectLocation = document.getElementById("projectPdfSelection").value;
+            annotation.push(this.setArrayAnnotation(correspondingnode, nodes, i));
+        }
+        // to populate the project section from .JSON file
+        project.push({
+            projectname: projectName,
+            projectlocation: projectLoc,
+            projectsavedfile: projectSavedFile,
+            projectfiles: listFiles
         });
+        // build the JSON file with combine of project and annotation
+        itemResult.push({
+            project: project,
+            annotation: annotation
+        });
+        var result = util.setJsonFile(itemResult);
+        util.writeJsonFile(projectLoc, result, projectName);
+    };
+    Project.prototype.setArrayAnnotation = function (correspondingnode, nodes, i) {
+        var annotation = [];
+        annotation.push({
+            id: nodes[i].id,
+            text: nodes[i].topic,
+            correspondingnode: correspondingnode,
+            file: nodes[i].pdfid,
+            page: nodes[i].index,
+            placed: nodes[i].expanded
+        });
+        return annotation;
+    };
+    /**
+     * Used to create bootstrap treeview file (.json)
+     * @param util
+     * @param guiSideBar
+     * @param listPdf
+     * @param projectName
+     * @param projectLoc
+     * @param listFiles
+     */
+    Project.prototype.saveTreeView = function (util, guiSideBar, listPdf, projectName, projectLoc, listFiles) {
+        var itemDirProject = [];
+        var tempNodeName = [];
+        for (var j = 0; j < listFiles.length; j++) {
+            tempNodeName.push({
+                text: listFiles[j],
+                icon: "glyphicon glyphicon-file",
+                href: projectLoc + "\\" + listFiles[j]
+            });
+        }
+        itemDirProject.push({
+            text: projectName,
+            nodes: tempNodeName
+        });
+        var resultDir = util.setJsonFile(itemDirProject);
+        util.appendJsonFile("./", resultDir, "root");
+        guiSideBar.setTreeListener(resultDir);
+        listPdf.setListPdfFile(listFiles);
+        listPdf.setLastModDate(listPdf.getModDateFs(util, projectLoc, listFiles));
+    };
+    /**
+     * when open project is pressed
+     */
+    Project.prototype.setOpenProjectModal = function (util, guiSideBar, listPdf, mindmapMenu) {
+        var input = $(document.getElementById('file-chooser'));
+        input.trigger("click"); // opening dialog
+        this.setOpenProjectListener(util, guiSideBar, listPdf, this, mindmapMenu);
+    };
+    /**
+     * Listener of the open project
+     * @param util
+     * @param guiSideBar
+     * @param listPdf
+     * @param self
+     */
+    Project.prototype.setOpenProjectListener = function (util, guiSideBar, listPdf, self, mindmapMenu) {
+        $("#file-chooser").on("change", function (result) {
+            var fs = require("fs");
+            var filePath = result.target.files[0].path;
+            fs.readFile(filePath, function (err, data) {
+                if (err) {
+                    return console.error(err);
+                }
+                self.openProject(data, self, util, guiSideBar, listPdf, mindmapMenu);
+            });
+        });
+    };
+    /**
+     * Open Project Main Program
+     * @param data
+     * @param self
+     * @param util
+     * @param guiSideBar
+     * @param listPdf
+     */
+    Project.prototype.openProject = function (data, self, util, guiSideBar, listPdf, mindmapMenu) {
+        var dataObject = util.parseJsonFile(data);
+        console.log(dataObject);
+        self.setProjectName(dataObject[0].project[0].projectname);
+        self.setProjectLocation(dataObject[0].project[0].projectlocation);
+        self.setProjectPdfList(dataObject[0].project[0].projectfiles);
+        self.setProjectSavedFileLocation(dataObject[0].project[0].projectsavedfile);
+        self.saveTreeView(util, guiSideBar, listPdf, self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
+        listPdf.setDirectory(self.getProjectLocation());
+        var htmlContent = document.getElementById('mindmap-chooser');
+        htmlContent.filename = self.getProjectSavedFileLocation();
+        mindmapMenu.setOpenFileListener(htmlContent);
+        programCaller('refresh');
+    };
+    Project.prototype.loadMMJMFile = function () {
+    };
+    /**
+     * When close project is pressed
+     * @param guiSideBar
+     * @param menu
+     */
+    Project.prototype.setCloseProject = function (guiSideBar, menu, gui, status) {
+        if (status == "noedit") {
+            // do nothing
+        }
+        else {
+            var closeProjectStatus = gui.windowConfirmation("you are about to close project, save changes?");
+            if (closeProjectStatus) {
+                this.setSaveProject(util);
+                if ((menu.getFileTypeSave() != null)) {
+                    menu.saveFile(menu.getFileTypeSave(), project, util);
+                }
+                else {
+                    menu.saveFile("mm", project, util);
+                }
+            }
+        }
+        guiSideBar.resetTreeView();
+        guiSideBar.resetSidebar();
+        this.setProjectStatus("noedit");
+        menu.newMap();
     };
     return Project;
-}());
-/**
- * All operations for PouchDB database
- */
-var Database = (function () {
-    function Database(dataBaseName) {
-        this.dataBaseName = dataBaseName;
-    }
-    Database.prototype.createNewDatabase = function () {
-        this.setNewDatabase(this.dataBaseName);
-    };
-    Database.prototype.addNewDataToDatabase = function (input) {
-        this.addNewDataToDatabase(input);
-    };
-    Database.prototype.updateDataToDatabase = function (input) {
-        this.updateDatabase(input);
-    };
-    Database.prototype.getDocumentById = function (id) {
-        this.fetchDocumentById(id);
-    };
-    Database.prototype.setNewDatabase = function (dbName) {
-        var db = new PouchDB(dbName, { adapter: 'memory' });
-        var remoteCouch = false;
-        this.dataBaseFile = db;
-        this.remoteCouch = remoteCouch;
-    };
-    Database.prototype.addNewDatabase = function (input) {
-        var dbName = this.dataBaseName;
-        this.dataBaseFile.put({ _id: dbName, input: input }).then(function (response) {
-            console.log(response);
-        })["catch"](function (err) {
-            console.log(err);
-        });
-    };
-    Database.prototype.updateDatabase = function (input) {
-        var dbName = this.dataBaseName;
-        this.dataBaseFile.get(dbName).then(function (doc) {
-            return this.dataBaseFile.put({
-                _id: dbName,
-                _rev: doc._rev,
-                input: input
-            });
-        }).then(function (response) {
-            console.log(response);
-        })["catch"](function (err) {
-            console.log(err);
-        });
-    };
-    Database.prototype.fetchDocumentById = function (docId) {
-        this.dataBaseFile.get(docId).then(function (doc) {
-            console.log(doc);
-        })["catch"](function (err) {
-            console.log(err);
-        });
-    };
-    return Database;
 }());
 // ========================================================= //
 // Function Section
 // ========================================================= //
 var node;
-var dir = "/scimappr/docs";
+var dir = "./docs";
 var listPdf = new ListPdf(new Array, new Array, dir);
 var listAnnotation = new ListAnnotations(dir);
 var util = new Utils();
 var contextMenu = new ContextMenu();
 var mindmapMenu;
+var gui = null;
 var guiSideBar = null;
 var project = null;
 /**
@@ -1138,33 +1551,12 @@ function programCaller(data) {
          * For the first initilization for the program
          */
         case "init":
+            // set initialize for node
             node = new Nodes("", "", "", 0);
-            //to set nodes as draggable and droppable
-            $(".drag").draggable(node.setDraggable());
-            $(".drop").droppable(node.setDroppable());
-            // Render existing MindMap
-            var options = {
-                container: 'jsmind_container',
-                theme: 'primary',
-                editable: true
-            };
-            var mindmap = {
-                "meta": {
-                    "name": "jsMind",
-                    "version": "0.2"
-                },
-                "format": "node_tree",
-                "data": { "id": "root", "topic": "Root", "children": [] }
-            };
-            _jm = jsMind.show(options, mindmap);
-            mindmapMenu = new MindmapMenu(_jm);
-            mindmapMenu.setListeners();
-            //get PDF's lists
-            var pdfProcess = listPdf.getPdf();
-            Promise.all([pdfProcess]).then(function (response) {
-                listPdf.setListPdfFile(response[0]);
-                listPdf.setLastModDate(listPdf.getModDate(util, response[0]));
-            });
+            // set Initialize for Gui
+            gui = new Gui();
+            mindmapMenu = gui.setGuiInitialize();
+            // set initialize for Gui in sidebar
             // set listener for JsMind changes
             guiSideBar = new GuiSideBar();
             guiSideBar.setJsmindListener(contextMenu);
@@ -1176,7 +1568,7 @@ function programCaller(data) {
          */
         case "refresh":
             /**
-            * check if sidebar is existed, if yes then do refreshAnnotation
+            * check if sidebar has been existed, if yes then do refreshAnnotation
             */
             var isSideBarExist = guiSideBar.checkSideBar();
             if (isSideBarExist) {
@@ -1184,18 +1576,18 @@ function programCaller(data) {
                 break;
             }
             //get PDF's lists
-            var pdfProcess = listPdf.getPdf();
+            var pdfProcess = listPdf.getPdfFromFs();
             guiSideBar.resetSidebar();
             // get annotation's lists
             Promise.all([pdfProcess]).then(function (response) {
                 listPdf.setListPdfFile(response[0]);
                 for (var i = 0; i < listPdf.getCount(); i++) {
-                    var pdfPages = listPdf.getPdfPage(listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
+                    var pdfPages = listPdf.getPdfPage(listPdf.getDirectory() + "\\" + listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
                     Promise.all([pdfPages, pdfProcess, i]).then(function (responsePages) {
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[2]));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function (responseResult) {
                             var resultJson = responseResult[2];
-                            guiSideBar.setGuiInit(resultJson);
+                            guiSideBar.setGuiInit(resultJson, listPdf.getDirectory());
                         });
                     });
                 }
@@ -1218,42 +1610,76 @@ function programCaller(data) {
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listChange[responsePages[1]]);
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function (responseResult) {
                             var newNodes = JSON.parse(responseResult[2]);
-                            guiSideBar.setGuiOnAppend(newNodes);
+                            guiSideBar.setGuiOnAppend(newNodes, listPdf.getDirectory());
                         });
                     });
                 }
             }
             else {
-                alert("No Change in Annotation");
+                gui.windowAlert("No Change in Annotation");
             }
             break;
         case "copyMenu":
             contextMenu.actionCopy();
             break;
         case "pasteMenu":
-            contextMenu.actionPaste();
+            contextMenu.actionPaste(project);
             break;
         case "openPDFMenu":
+            dir = listPdf.getDirectory();
             contextMenu.actionOpenPdf(dir);
+            break;
+        case "openPDFUserDefine":
+            dir = listPdf.getDirectory();
+            contextMenu.actionOpenPdfUserDefine(dir);
             break;
         case "cancelMenu":
             contextMenu.actionCancel();
             break;
+        case "newMindmap":
+            mindmapMenu.newMap(project);
+            break;
+        case "openExisting":
+            mindmapMenu.selectFile(project);
+            break;
+        case "saveFileMM":
+            var locationFile = mindmapMenu.saveFile("mm", project, util);
+            break;
+        case "saveFileJM":
+            var locationFile = mindmapMenu.saveFile("jm", project, util);
+            break;
         case "searchAnnotation":
+            //searching annotation based on a keyword
             var keyword = document.getElementById("annotSearch").value;
-            guiSideBar.searchAnnotation(keyword, util);
+            guiSideBar.searchAnnotation(keyword, util, listPdf.getDirectory());
             break;
         case "newProjectModal":
             //set modal of the new project
-            project.setNewProjectModal();
+            project.setNewProjectModal(listPdf);
+            break;
+        case "openProjectModal":
+            //set modal of the open project
+            project.setOpenProjectModal(util, guiSideBar, listPdf, mindmapMenu);
             break;
         case "newProject":
             //set routine for new project
-            project.checkNewProject();
-            project.createNewProject();
+            var newProjectStatus = project.checkNewProject(gui);
+            if (newProjectStatus) {
+                project.createNewProject(util, guiSideBar, listPdf);
+            }
+            break;
+        case "closeProject":
+            //set routine for close project
+            var status = project.getProjectStatus();
+            project.setCloseProject(guiSideBar, mindmapMenu, gui, status);
+            break;
+        case "saveProject":
+            // set routine for save project
+            var saveProjectStatus = gui.windowConfirmation("save changes?");
+            if (saveProjectStatus) {
+                var msg = project.setSaveProject(util);
+                gui.windowAlert("project is saved in" + " " + msg);
+            }
             break;
     }
-}
-function menuAction(action, data) {
-    mindmapMenu[action](data);
 }

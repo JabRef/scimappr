@@ -2,12 +2,13 @@ declare var PDFJS:any;
 declare var Promise:any;
 declare var $:any;
 declare var hex_sha1:any;
+declare var require:any;
 
 declare var hex_hmac_sha1:any;
 declare var _jm: {get_selected_node: Function, select_node: Function, show: Function, add_node: Function, mind:{nodes:Function}, add_event_listener:Function, get_data:Function};
 declare var jsMind:any;
 declare var jmnodes:any;
-declare var PouchDB:any;
+declare var Buffer:any;
 
 // ========================================================= //
 // Class Section
@@ -130,13 +131,16 @@ class Nodes {
 				alert('please select a node first.');
 				return;
 			}
-			var nodeid:string = ui.helper.prevObject.context.id;
-			var topic:string = ui.helper.prevObject.context.innerHTML;
-			var pdfid:string = ui.helper.prevObject.context.title;
-			var pagenumber:number = ui.helper.prevObject.context.value;
+			var nodeid:string = ui.helper.prevObject[0].id;
+			var topic:string = ui.helper.prevObject[0].innerHTML;
+			var pdfid:string = ui.helper.prevObject[0].title;
+            var pagenumber:number = ui.helper.prevObject[0].value;
+            var directory:string = ui.helper.prevObject[0].href;
             var node:any = _jm.add_node(selected_node, nodeid, topic, "", pdfid, pagenumber);
             
             this.addPdfButton(pdfid, nodeid, pagenumber);
+
+            project.setProjectStatus('edited');
 
 		    }
         }
@@ -166,8 +170,9 @@ class Nodes {
        
             if((pdfid != "undefine") || (pdfid != null)) {
 
-                var pdfViewer:string = "/scimappr/build/pdf.js/web/viewer.html";
-                var fileName:string = "?File=" + "/scimappr/" + pdfid;
+                var pdfViewer:string = "./build/pdf.js/web/viewer.html";
+                //var fileName:string = "?File=" + "./" + pdfid;
+                var fileName:string = "?file=" + pdfid;
                 var pageNumber:string =  "#page=" + pagenumber.toString();
                 var link:string = pdfViewer + fileName + pageNumber;
 
@@ -178,12 +183,13 @@ class Nodes {
 
                 var imgElement:any = document.createElement("img");
                 imgElement.setAttribute("id", nodeid);
-                imgElement.setAttribute("src", "/scimappr/build/img/pdf.png");
+                imgElement.setAttribute("src", "./build/img/pdf.png");
 
                 linkElement.appendChild(imgElement);
                 var selection = this.findNodeByAttribute("nodeid", nodeid);
                 selection.appendChild(linkElement);
             }
+
     }
 
 }
@@ -248,6 +254,22 @@ class ListPdf {
         }
     }
 
+
+    /**
+     * extract the all last modifyed date information from the pdf file list
+     * @param util
+     * @param listFile
+     * @returns {Array}
+     */
+    public getModDateFs(util, location:string, listFile:string[]) {
+        var counter:number = 0;
+        var modDateList = [];
+        for (var x = 0; x < listFile.length; x++) {
+            modDateList.push(util.getLastModFs(location, listFile[x]));
+        }
+        return modDateList;
+    }
+
     /**
      * extract the all last modifyed date information from the pdf file list
      * @param util
@@ -295,6 +317,11 @@ class ListPdf {
     public getPdf():any {
             var result = this.getPdfFiles(this.directory);
             return result;
+    }
+
+    public getPdfFromFs():any {
+        var result = this.readPdfInDirectory(this.directory);
+        return result;
     }
 
     /**
@@ -350,7 +377,34 @@ class ListPdf {
     }
 
     /**
-     * This is the promisse to get file names from the given directory
+     * reading all pdf files in the specified directory
+     * @param path 
+     */
+    private readPdfInDirectory(path:string):any {
+
+        var process = new Promise(function(resolve, reject){
+        var promises = [], promise;
+        var fs = require("fs");
+        fs.readdir(path, function(err, filenames){
+            if(err) {
+                alert("error reading directory");
+                return;
+            }
+            filenames.forEach(function(filename){
+                if(filename.indexOf(".pdf") != -1) {
+                    promise = filename;
+                    promises.push(promise);
+                }
+            });
+            resolve(promises);
+            })
+        });
+
+        return process;
+    }
+
+    /**
+     * This is the promise to get file names from the given directory in server
      * @param inputURL
      * @returns {any}
      */
@@ -716,6 +770,21 @@ class Utils {
     }
 
     /**
+     * The real method in order to get the last modified date from the given URL (using fs)
+     * @param url
+     * @returns {any}
+     */
+    public getLastModFs(location:string, url:string):any {
+        var lastModifiedDate:any;
+        var fs = require('fs');
+
+        fs.stat(location+"\\"+url, function(err, stats){
+            lastModifiedDate = stats.mtime;
+        });
+        return lastModifiedDate;
+    }
+
+    /**
      * Comparison function in order to understand whether the pdf file is changed or not
      * @param lstMod1
      * @param lstMod2
@@ -727,6 +796,58 @@ class Utils {
             stsResult = true;
         }
         return stsResult;
+    }
+
+    public writeAnyTypeFile(path:string, input:string, name:string, type:string) {
+        var fs = require('fs');
+        var buffer = new Buffer(input); 
+
+        fs.open(path+"\\"+name+type, 'w', function(err, fd) {
+            if (err) {
+                throw 'error opening file: ' + err;
+            }
+
+            fs.write(fd, buffer, 0, buffer.length, null, function(err) {
+                if (err) throw 'error writing file: ' + err;
+                fs.close(fd, function() {
+                    console.log('file has been written to ' + path+"\\"+name+"."+type);
+                })
+            });
+        });
+    }
+
+    public writeJsonFile(path:string, input:string, name:string) {
+        var fs = require('fs');
+        var buffer = new Buffer(input);
+
+        fs.open(path+"\\"+name+".json", 'w', function(err, fd) {
+            if (err) {
+                throw 'error opening file: ' + err;
+            }
+
+            fs.write(fd, buffer, 0, buffer.length, null, function(err) {
+                if (err) throw 'error writing file: ' + err;
+                fs.close(fd, function() {
+                    console.log('file has been written to ' + path+"\\"+name+".json");
+                })
+            });
+        });
+    }
+
+    public appendJsonFile(path:string, input:string, name:string) {
+         var fs = require('fs');
+         var buffer = new Buffer(input);
+
+         fs.open(path+"\\"+name+".json", 'w', function(err, fd) {
+            if (err) {
+                throw 'error opening file: ' + err;
+            }
+
+            fs.appendFile(path+"\\"+name+".json", buffer, function (err) {
+                if (err) throw err;
+                console.log('Data has been appended to ' + path+"\\"+name+".json");
+            });
+        });
     }
 
 }
@@ -767,10 +888,11 @@ class ContextMenu {
         $('#contextMenu').hide();
     }
 
-    public actionPaste() {
+    public actionPaste(project:any) {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var topic = this.getClipBoard();
         _jm.add_node(selected_node, Date.now(), topic, '', '');
+        project.setProjectStatus('edited');
         //var node = new Nodes(Date.now().toString(), topic, "", 0);
         //var tempNode = node.findNodeByAttribute("nodeid", node.getId());
         //tempNode.removeChild(tempNode.getElementsByTagName("a"));
@@ -779,9 +901,19 @@ class ContextMenu {
 
     public actionOpenPdf(directory:string) {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
-        var pdfViewer:string = "/scimappr/build/pdf.js/web/viewer.html";
-        var fileName:string = "?File=" + directory.replace("docs", "") + selected_node.pdfid;
-        window.open(pdfViewer + fileName,"_blank","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
+        var pdfViewer:string = "./build/pdf.js/web/viewer.html";
+        var fileName:string = "?file=" + selected_node.pdfid;
+        var page:string = "#page=" + selected_node.index;
+        window.open(pdfViewer + fileName + page,"_blank","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
+        $('#contextMenu').hide();
+    }
+
+    public actionOpenPdfUserDefine(directory:string) {
+        var selected_node = _jm.get_selected_node();
+        const {shell} = require('electron');
+
+        var fileName:string = selected_node.pdfid;
+        shell.openItem(fileName);
         $('#contextMenu').hide();
     }
 
@@ -795,12 +927,21 @@ class ContextMenu {
  */
 class MindmapMenu {
     private jsMindObject: any;
+    private fileTypeSave:string;
 
     constructor(jsMindObject) {
         this.jsMindObject = jsMindObject;
     }
 
-    public newMap() {
+    public setFileTypeSave(input:string) {
+        this.fileTypeSave = input;
+    }
+
+    public getFileTypeSave():string {
+        return this.fileTypeSave;
+    }
+
+    public newMap(project:any) {
         var mindmap = {
             "meta":{
                 "name":"jsMind",
@@ -810,40 +951,52 @@ class MindmapMenu {
             "data":{"id":"root","topic":"Root","children": [] }
         };
         this.jsMindObject.show(mindmap);
-        // Reset the file selector
-        (<HTMLInputElement> document.querySelector('#mindmap-chooser')).value = '';
+        (<HTMLInputElement> document.querySelector('#mindmap-chooser')).value = '';// Reset the file selector
+        if((project != null) || (project != undefined)) {project.setProjectStatus('edited');}
     }
 
-    public saveFile(fileType:string) {
-        var mind_data;
+    public saveFile(fileType:string, project:any, util:any) {
+        var mind_data:any;
+        var mind_object = this.getJsMindData();
+
+        this.setFileTypeSave(fileType);
+
         if (fileType === 'jm') {
-            mind_data = this.jsMindObject.get_data();
+            mind_data = mind_object.get_data();
         } else {
-            mind_data = this.jsMindObject.get_data('freemind');
+            mind_data = mind_object.get_data('freemind');
         }
         var mind_str = (fileType === 'jm') ? jsMind.util.json.json2string(mind_data) : mind_data.data;
-        var file_name = prompt("Enter file name", mind_data.meta.name || 'jsMind');
-        if (!file_name) { return }
-        if (fileType === 'jm') {
-            jsMind.util.file.save(mind_str,'text/jsmind', file_name+'.jm');
-        } else {
-            jsMind.util.file.save(mind_str,'text/xml', file_name+'.mm');
-        }
+
+        util.writeAnyTypeFile(project.getProjectLocation(), mind_str, project.getProjectName(), fileType);
+
+        project.setProjectSavedFileLocation(project.getProjectLocation()+"\\"+project.getProjectName()+"."+fileType);
+        project.setSaveProject(util);
+    }
+
+    public getJsMindData():any {
+        var mindmapData:any;
+        mindmapData = this.jsMindObject;
+        return mindmapData;
     }
     
-    public selectFile() {
+    public selectFile(project:any) {
         var file_input = document.getElementById('mindmap-chooser');
         file_input.click();
     }
 
-    public setListeners() {
+    public setOpenFileListener(input:any) {
         var mindMapChooser = <HTMLInputElement>document.getElementById('mindmap-chooser');
+        if((input != null) || input != undefined) {
+            mindMapChooser = input;
+        } 
+        
         mindMapChooser.addEventListener('change', function (event) {
             var files:FileList = mindMapChooser.files;
             if (files.length <= 0) {
                 alert('please choose a file first')
             }
-
+            
             var file_data = files[0];
             if (/.*\.mm$/.test(file_data.name)) {
                 jsMind.util.file.read(file_data, function (freemind_data, freemind_name){
@@ -876,8 +1029,105 @@ class MindmapMenu {
     }
 }
 
-class GuiEffect {
+/**
+ * for GUI operations in general (except the gui sidebar)
+ */
+class Gui {
 
+    public setGuiInitialize(mindmapMenu:any):any {
+            //to set nodes as draggable and droppable
+            $(".drag").draggable(node.setDraggable());
+            $(".drop").droppable(node.setDroppable());
+
+            // Render existing MindMap
+            var options = {
+                container:'jsmind_container',
+                theme:'primary',
+                editable:true
+            }
+            var mindmap = {
+                "meta":{
+                    "name":"jsMind",
+                    "version":"0.2"
+                },
+                "format":"node_tree",
+                "data":{"id":"root","topic":"Root","children": [] }
+            };
+
+            _jm = jsMind.show(options, mindmap);
+            mindmapMenu = new MindmapMenu(_jm);
+            mindmapMenu.setOpenFileListener();
+
+            return mindmapMenu;
+    }
+
+    /**
+     * used for creating confirmation window
+     * @param msg 
+     */
+    public windowConfirmation(msg:string):boolean {
+        var result:boolean = confirm(msg);
+        return result;
+    }
+
+    /**
+     * used for creating alert window
+     * @param msg 
+     */
+    public windowAlert(msg:string) {
+        alert(msg);
+    }
+
+    /**
+     * used for creating new project window
+     * @param listPdf 
+     */
+    public windowNewProject(listPdf:any):any {
+         var pathName:string = "";
+        var dirProcess:any = null;
+        var listFiles:string = "";
+        
+        $("#myModal").modal();
+        (<HTMLInputElement> document.getElementById("projectName")).value = "MyThesis";
+        (<HTMLInputElement> document.getElementById("projectPdf")).value = "";
+        
+        var promise = new Promise(function(resolve, reject){
+        $("input:file").on("change", function(result){  
+            var lastResult:any[] = new Array;
+            pathName = result.target.files[0].path;
+            listPdf.setDirectory(pathName);
+            dirProcess = listPdf.getPdfFromFs();
+            lastResult.push(pathName);
+
+            Promise.all([dirProcess]).then(function(result){
+                var temp = result[0];
+                var arrayList:any = [];
+
+                for(var i = 0; i < temp.length; i++) {
+                        if(i == 0) {
+                            listFiles += temp[i];
+                        } else {
+                            listFiles += ", " + temp[i];
+                        }
+                        arrayList[i] = temp[i];
+                }
+                       
+                (<HTMLInputElement> document.getElementById("projectPdf")).value = listFiles;
+                lastResult.push(arrayList);
+                resolve(lastResult);
+            });
+        });
+
+        });
+
+        return promise;
+
+    }
+
+     /**
+     * Used for creating shaking effect into modal
+     * @param id 
+     */
     public effectShaking(id:string) {
         var element:any = document.getElementById(id);
         $(element).effect("shake");
@@ -886,9 +1136,9 @@ class GuiEffect {
 }
 
 /**
- * For the creation of the side bar
+ * For the creation of the side bar GUI
  */
-class GuiSideBar {
+class GuiSideBar extends Gui {
 
     private basicHtmlTitle:string;
     private basicHtmlContent:any;
@@ -897,7 +1147,7 @@ class GuiSideBar {
      * Initilize the Sidebar for the first time or when Refresh
      * @param data
      */
-    public setGuiInit(data:string) {
+    public setGuiInit(data:string, directory:string) {
         $("#loading-data").remove();
 	    $("#drag").remove();
 
@@ -912,9 +1162,9 @@ class GuiSideBar {
             titleFile = this.setDynamicHtmlTitle(util, tempObject["filename"], tempObject["filename"])
         }
 
-	    $(titleFile).appendTo(".list-group");
+	    $(titleFile).appendTo("#annotation-group");
 
-		this.setDynamicHtmlObject(objekt, "init");
+		this.setDynamicHtml(objekt, "init", directory);
 
     }
 
@@ -922,15 +1172,15 @@ class GuiSideBar {
      * Adding GUI on SideBar when refreshAnnotation is done
      * @param object
      */
-    public setGuiOnAppend(object:any) {
-        this.setDynamicHtmlObject(object, "append");
+    public setGuiOnAppend(object:any, directory:string) {
+        this.setDynamicHtml(object, "append", directory);
     }
 
     /**
      *Clear the side bar
      */
     public resetSidebar() {
-        $(".list-group").empty();
+        $("#annotation-group").empty();
     }
 
      /**
@@ -940,7 +1190,7 @@ class GuiSideBar {
      */
     public checkSideBar():boolean {
         var isSideBarExist:boolean = false;
-        var nodes:any = $('.list-group-item').get();
+        var nodes:any = $('.drag').get();
 
         if(nodes.length != 0) {
             isSideBarExist = true;
@@ -950,16 +1200,16 @@ class GuiSideBar {
     }
 
     /**
-     * Is used for searching the annotation using form and button search
+     * Is used for searching the annotation using a form and button search
      * @param keyword 
      * @param util 
      */
-    public searchAnnotation(keyword:string, util:any) {
+    public searchAnnotation(keyword:string, util:any, directory:string) {
         if(keyword == "") {
             this.resetSidebar();
             programCaller("refresh");
         } else {
-            var listAnnotation:any = document.querySelectorAll(".list-group");
+            var listAnnotation:any = document.querySelectorAll("#annotation-group");
             var list:any = listAnnotation[0].children;
             var nodeObject:NodesObject = null;
             var temp:any = [];
@@ -979,7 +1229,7 @@ class GuiSideBar {
 
             // Set The GUI based on selected annotation
             this.resetSidebar();
-            this.setGuiInit(util.setJsonFile(temp));
+            this.setGuiInit(util.setJsonFile(temp), directory);
         }
     }
 
@@ -1005,22 +1255,40 @@ class GuiSideBar {
          		}
          	}
 
-            var nodes = $('.list-group-item').get();
-            nodes.forEach(function (node) {
+            var nodes = $('#annotation-group').get();
+            var children = nodes[0].children;
+            for(var i = 0; i < children.length; i++) {
+                node = children[i];
                 if (_jm.mind.nodes[node.id]) {
                     $('#'+node.id).hide();
                 } else {
                     $('#'+node.id).show();
                 }
-            });
+            }
+            
         });
+    }
+
+    /**
+     * Set Treeview based on input data in JSON Format
+     * @param input 
+     */
+    public setTreeListener(input:string) {
+	    $('#tree').treeview({data:input});
+    }
+
+    /**
+     * Clear Treeview
+     */
+    public resetTreeView() {
+        $('#tree').treeview({data:""});
     }
 
     /**
      * Set the dynamic HTML for the input of the object
      * @param objekt
      */
-    private setDynamicHtmlObject(objekt:NodesObject, mode:string) {
+    private setDynamicHtml(objekt:NodesObject, mode:string, directory:string) {
         var node;
         for(var i = 0; i < objekt.length; i++) {
             var input = objekt[i];
@@ -1029,7 +1297,7 @@ class GuiSideBar {
             // All annotations must exist in the Sidebar, whether hidden or visible
             if (!this.doesAnnotationExistInSidebar(node.getId())) {
                 // If the annotation does not exist, add it to sidebar
-                this.setDynamicHtmlContent(node, ".list-group", " drag list-group-item", mode);
+                this.setDynamicHtmlContent(node, "#annotation-group", "list-group-item drag", mode, directory);
             }
             // Based on whether the annotation exists in mindmap or not, toggle the visibility
             if (this.checkJsmindNode(node.getId())) {
@@ -1059,14 +1327,14 @@ class GuiSideBar {
      * @param appendToName
      * @param className
      */
-    private setDynamicHtmlContent(node, appendToName:string, className:string, mode:string) {
+    private setDynamicHtmlContent(node, appendToName:string, className:string, mode:string, directory:string) {
         var htmlContent = document.createElement("li");
         htmlContent.setAttribute("id", node.getId());
         htmlContent.setAttribute("pagenumber", node.getPageNumber());
         htmlContent.value = node.getPageNumber();
         htmlContent.innerHTML = node.getTopic();
+        htmlContent.title = directory + "\\" +node.getFileName();
         this.basicHtmlContent = htmlContent;
-        //this.basicHtmlContent = "<li id=" + node.getId() + ">" + node.getTopic() + "</li>";
 
         if(mode == "init") {
             $(this.basicHtmlContent).appendTo(appendToName);
@@ -1078,8 +1346,7 @@ class GuiSideBar {
 
         $(this.basicHtmlContent).draggable(node.setDraggable());
         $(this.basicHtmlContent).droppable(node.setDroppable());
-        document.getElementById(node.getId()).className += className;
-        document.getElementById(node.getId()).title += node.getFileName();
+        document.getElementById(node.getId()).className += " " + className;
     }
 
     /**
@@ -1110,33 +1377,92 @@ class GuiSideBar {
  * All operations with Project
  */
 class Project {
-    private projectName:string;
-    private projectLocation:string;
-    private projectPdfList:string[];
+    private projectName:string; // to save the name of a project
+    private projectLocation:string; // to save the folder location of a project
+    private projectPdfList:string[]; // to save the pdf filename lists of a project
+    private projectStatus:string; // to save whether the project has been edited or not
+    private projectSavedFileLocation:string // to save the location of .mm or .jm file
 
     constructor() {
         this.projectPdfList = new Array;
+        this.projectStatus = "noedit";
     }
 
+    /**
+     * to save the project name
+     * @param input 
+     */
     public setProjectName(input:string) {
         this.projectName = input;
     }
-
+    /**
+     * to get the project name
+     */
     public getProjectName():string {
         return this.projectName;
     }
-
+    /**
+     * to save the project location
+     * @param input 
+     */
+    public setProjectLocation(input:string) {
+        this.projectLocation = input;
+    }
+    /**
+     * to get the project location
+     */
+    public getProjectLocation():string {
+        return this.projectLocation;
+    }
+    /**
+     * to save list of pdf files of a project
+     * @param input 
+     */
     public setProjectPdfList(input:string[]) {
         for(var i = 0; i < input.length; i++) {
             this.projectPdfList[i] = input[i];
         }
     }
-
+    /**
+     * to get the list of pdf files of a project
+     */
     public getProjectPdfList():string[] {
         return this.projectPdfList;
     }
 
-    public checkNewProject() {
+    /**
+     * to set the status of the project (edited or noedit)
+     * @param input 
+     */
+    public setProjectStatus(input:string) {
+        this.projectStatus = input;
+    }
+
+    /**
+     * to get the status of the project
+     */
+    public getProjectStatus():string {
+        return this.projectStatus;
+    }
+
+    /**
+     * to save the file (.mm or .jm) location
+     */
+    public setProjectSavedFileLocation(input:string) {
+        this.projectSavedFileLocation = input;
+    }
+
+    /**
+     * to get the file (.mm or .jm) location
+     */
+    public getProjectSavedFileLocation():string {
+        return this.projectSavedFileLocation;
+    }
+
+    /**
+     * to validate & check the requirements for new project
+     */
+    public checkNewProject(gui:any):boolean {
         var checkStatus:boolean = true;
         var parm1:string = (<HTMLInputElement> document.getElementById("projectName")).value;
         var parm2:string = (<HTMLInputElement> document.getElementById("projectPdf")).value;
@@ -1155,121 +1481,242 @@ class Project {
         }
 
         if(checkStatus == false) {
-            var gui = new GuiEffect();
             gui.effectShaking("myModal");
         } else {
             $("#myModal").modal('hide');
         }
 
+        return checkStatus;
     }
 
-    public createNewProject() {
-        var projectName = this.getProjectName();
-        var listFiles:string[] = this.getProjectPdfList();
+    /**
+     * when new project modal is opened
+     * @param listPdf 
+     */
+    public setNewProjectModal(listPdf:any) {
+        var self:any = this;
+        var gui = new Gui;
+        var promise = gui.windowNewProject(listPdf);
 
-        for(var i = 0; i < listFiles.length; i++) {
+        Promise.all([promise]).then(function(result){
+            var tempResult:any = result[0];
+            self.setProjectLocation(tempResult[0]);
+            self.setProjectPdfList(tempResult[1]); 
+        });
+    }
 
+    /**
+     * When save button is pressed in new project modal
+     * @param util 
+     * @param guiSideBar 
+     * @param listPdf 
+     */
+    public createNewProject(util:any, guiSideBar:any, listPdf:any) {
+        this.setProjectName((<HTMLInputElement> document.getElementById("projectName")).value);
+        this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), "");
+        this.saveTreeView(util, guiSideBar, listPdf, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList());
+        this.setProjectStatus("edited");
+        programCaller('refresh');
+    }
+
+    /**
+     * to save project
+     * @param util 
+     */
+    public setSaveProject(util:any):string {
+        var msg:string = this.getProjectLocation();
+        this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), this.getProjectSavedFileLocation());
+        this.setProjectStatus('noedit');
+        return msg;
+    }
+
+   /**
+    * Used for saving project and creating file (.json) in local
+    * @param util 
+    * @param projectName 
+    * @param projectLoc 
+    * @param listFiles 
+    */
+    private saveProject(util:any, projectName:string, projectLoc:string, listFiles:string[], projectSavedFile:string) {
+        var project:any = [];
+        var annotation:any = [];
+        var correspondingnode:any = [];
+        var itemResult:any = [];
+        var nodes:any = [];
+        var counter:number = 0;
+
+        // to convert JSON from Object to array file
+        var jsMindData:any = mindmapMenu.getJsMindData();
+        var nodesJSON = jsMindData.mind.nodes;
+        for(var x in nodesJSON) {
+            nodes.push(nodesJSON[x]);
         }
-    }
-
-    public setNewProjectModal() {
-        $("#myModal").modal();
-        (<HTMLInputElement> document.getElementById("projectName")).value = "MyThesis";
-        (<HTMLInputElement> document.getElementById("projectPdf")).value = "";
         
-        $("input:file").on("change", function(result){
-            var listFiles:string = "";
-            this.projectPdfList = [];
-            var numFiles = result.target.files.length;
-
-            for(var i = 0; i < numFiles; i++) {
-                var typeFile:any = result.target.files[i].type;
-                if(typeFile == "application/pdf") {
-                    if(i == 0) {
-                        listFiles += result.target.files[i].name;
-                    } else {
-                        listFiles += ", " + result.target.files[i].name;
-                    }
-                    this.projectPdfList[i] = result.target.files[i].name;
+        // to populate the annotation section from .JSON file
+        for(var i = 0; i < nodes.length; i++) {
+            var temp = nodes[i];
+            correspondingnode = [];
+        if(temp.children.length == 0) {
+            correspondingnode.push("");
+        } else {
+                for(var j = 0; j < temp.children.length; j++) {
+                    correspondingnode.push([
+                            temp.children[j].id
+                    ]);
                 }
+                
             }
+        annotation.push(this.setArrayAnnotation(correspondingnode, nodes, i));
+        }
 
-            (<HTMLInputElement> document.getElementById("projectPdf")).value = listFiles;
-            console.log(result);
-            console.log((<HTMLInputElement> document.getElementById("projectPdfSelection")).value);
-            this.projectLocation = (<HTMLInputElement> document.getElementById("projectPdfSelection")).value;
+        // to populate the project section from .JSON file
+        project.push({
+                projectname: projectName,
+                projectlocation: projectLoc,
+                projectsavedfile: projectSavedFile,
+                projectfiles: listFiles
         });
 
-    }
-
-}
-
-/**
- * All operations for PouchDB database
- */
-class Database {
-
-    private dataBaseFile:any;
-    private dataBaseName:string;
-    private remoteCouch:boolean;
-
-    constructor(dataBaseName:string) {
-        this.dataBaseName = dataBaseName;
-    }
-
-    public createNewDatabase() {
-        this.setNewDatabase(this.dataBaseName);
-    }
-
-    public addNewDataToDatabase(input:object) {
-        this.addNewDataToDatabase(input);
-    }
-
-    public updateDataToDatabase(input:object) {
-        this.updateDatabase(input);
-    }
-
-    public getDocumentById(id:string) {
-        this.fetchDocumentById(id);
-    }
-
-    private setNewDatabase(dbName:string) {
-        var db = new PouchDB(dbName, {adapter: 'memory'});
-        var remoteCouch = false;
-        this.dataBaseFile = db;
-        this.remoteCouch = remoteCouch;  
-    }
-
-    private addNewDatabase(input:object) {
-        var dbName:string = this.dataBaseName;
-        this.dataBaseFile.put({_id: dbName, input}).then(function(response){
-            console.log(response);
-        }).catch(function(err){
-            console.log(err);
+        // build the JSON file with combine of project and annotation
+        itemResult.push({
+            project,
+            annotation
         });
+        var result:string = util.setJsonFile(itemResult);
+        util.writeJsonFile(projectLoc, result, projectName);
     }
 
-    private updateDatabase(input:object) {
-        var dbName:string = this.dataBaseName;
-        this.dataBaseFile.get(dbName).then(function(doc){
-            return this.dataBaseFile.put({
-                _id: dbName,
-                _rev: doc._rev,
-                input
+    private setArrayAnnotation(correspondingnode:any, nodes:any, i:any):any {
+        var annotation:any = [];
+        annotation.push({
+                    id: nodes[i].id,
+                    text: nodes[i].topic,
+                    correspondingnode,
+                    file: nodes[i].pdfid,
+                    page: nodes[i].index,
+                    placed: nodes[i].expanded
+                });
+        return annotation;    
+    }
+
+   /**
+    * Used to create bootstrap treeview file (.json)
+    * @param util 
+    * @param guiSideBar 
+    * @param listPdf 
+    * @param projectName 
+    * @param projectLoc 
+    * @param listFiles 
+    */
+    private saveTreeView(util:any, guiSideBar:any, listPdf:any, projectName:string, projectLoc:string, listFiles:string[]) {
+        var itemDirProject:any = [];
+        var tempNodeName:any = [];
+
+        for(var j = 0; j < listFiles.length; j++) {
+            tempNodeName.push({
+                text:listFiles[j],
+                icon:"glyphicon glyphicon-file",
+                href: projectLoc + "\\" + listFiles[j]
             });
-        }).then(function(response){
-            console.log(response);
-        }).catch(function(err){
-            console.log(err);
+        }
+        
+        itemDirProject.push({
+            text: projectName,
+            nodes: tempNodeName     
+        });
+
+        var resultDir:string = util.setJsonFile(itemDirProject);
+        util.appendJsonFile("./", resultDir, "root");
+
+        guiSideBar.setTreeListener(resultDir);
+
+        listPdf.setListPdfFile(listFiles);
+        listPdf.setLastModDate(listPdf.getModDateFs(util, projectLoc, listFiles));
+    }
+
+    /**
+     * when open project is pressed
+     */
+    public setOpenProjectModal(util:any, guiSideBar:any, listPdf:any, mindmapMenu:any) {
+        var input = $(document.getElementById('file-chooser'));
+        input.trigger("click"); // opening dialog
+        this.setOpenProjectListener(util, guiSideBar, listPdf, this, mindmapMenu);
+    }
+    /**
+     * Listener of the open project
+     * @param util 
+     * @param guiSideBar 
+     * @param listPdf 
+     * @param self 
+     */
+    private setOpenProjectListener(util:any, guiSideBar:any, listPdf:any, self:any, mindmapMenu:any) {
+         $("#file-chooser").on("change", function(result){
+            var fs = require("fs");
+            var filePath = result.target.files[0].path
+            fs.readFile(filePath, function (err, data) {
+                if (err) {
+                    return console.error(err);
+                }
+                self.openProject(data, self, util, guiSideBar, listPdf, mindmapMenu);
+            });
         });
     }
 
-    private fetchDocumentById(docId:string) {
-        this.dataBaseFile.get(docId).then(function(doc){
-            console.log(doc);
-        }).catch(function(err){
-            console.log(err);
-        });
+    /**
+     * Open Project Main Program
+     * @param data 
+     * @param self 
+     * @param util 
+     * @param guiSideBar 
+     * @param listPdf 
+     */
+    private openProject(data:string, self:any, util:any, guiSideBar:any, listPdf:any, mindmapMenu:any) {
+        var dataObject:object = util.parseJsonFile(data);
+        console.log(dataObject);
+        self.setProjectName(dataObject[0].project[0].projectname);
+        self.setProjectLocation(dataObject[0].project[0].projectlocation);
+        self.setProjectPdfList(dataObject[0].project[0].projectfiles);
+        self.setProjectSavedFileLocation(dataObject[0].project[0].projectsavedfile);
+        self.saveTreeView(util, guiSideBar, listPdf, self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
+
+        listPdf.setDirectory(self.getProjectLocation());
+
+        var htmlContent:any = (<HTMLInputElement> document.getElementById('mindmap-chooser'));
+        htmlContent.filename = self.getProjectSavedFileLocation();
+        mindmapMenu.setOpenFileListener(htmlContent);
+
+        programCaller('refresh');
+    }
+
+    private loadMMJMFile() {
+
+    }
+
+    /**
+     * When close project is pressed
+     * @param guiSideBar
+     * @param menu 
+     */
+    public setCloseProject(guiSideBar:any, menu:any, gui:any, status:string) {
+
+        if(status == "noedit") {
+                // do nothing
+        } else {
+                 var closeProjectStatus = gui.windowConfirmation("you are about to close project, save changes?");
+                if(closeProjectStatus) {
+                    this.setSaveProject(util);
+                    if((menu.getFileTypeSave() != null)) {
+                        menu.saveFile(menu.getFileTypeSave(), project, util);
+                    } else {
+                        menu.saveFile("mm", project, util);
+                    }
+                }
+        }
+
+        guiSideBar.resetTreeView();
+        guiSideBar.resetSidebar();
+        this.setProjectStatus("noedit");
+        menu.newMap();
     }
 
 }
@@ -1306,26 +1753,19 @@ interface NodesObject extends Array<object> {
 	title:string;
 	pagenumber:number;
 }
-/**
- * Template for ProjectObject
- */
-interface ProjectObject extends Array<object> {
-    projectname:string,
-    projectlocation:string,
-    projectfiles:string[];
-}
 
 // ========================================================= //
 // Function Section
 // ========================================================= //
 
 var node:any;
-var dir:string = "/scimappr/docs";
+var dir:string = "./docs";
 var listPdf:any = new ListPdf(new Array,new Array, dir);
 var listAnnotation:any = new ListAnnotations(dir);
 var util:any = new Utils();
 var contextMenu:any = new ContextMenu();
 var mindmapMenu:MindmapMenu;
+var gui:any = null;
 var guiSideBar:any = null;
 var project:any = null;
 
@@ -1339,38 +1779,16 @@ function programCaller(data:any) {
         /**
          * For the first initilization for the program
          */
-		case "init":
+        case "init":
+
+            // set initialize for node
             node = new Nodes("", "", "", 0);
-            //to set nodes as draggable and droppable
-            $(".drag").draggable(node.setDraggable());
-            $(".drop").droppable(node.setDroppable());
 
-            // Render existing MindMap
-            var options = {
-                container:'jsmind_container',
-                theme:'primary',
-                editable:true
-            }
-            var mindmap = {
-                "meta":{
-                    "name":"jsMind",
-                    "version":"0.2"
-                },
-                "format":"node_tree",
-                "data":{"id":"root","topic":"Root","children": [] }
-            };
-
-            _jm = jsMind.show(options, mindmap);
-            mindmapMenu = new MindmapMenu(_jm);
-            mindmapMenu.setListeners();
-
-            //get PDF's lists
-            var pdfProcess = listPdf.getPdf();
-            Promise.all([pdfProcess]).then(function(response){
-                listPdf.setListPdfFile(response[0]);
-                listPdf.setLastModDate(listPdf.getModDate(util, response[0]));
-            });
-
+             // set Initialize for Gui
+            gui = new Gui();
+            mindmapMenu = gui.setGuiInitialize();
+            
+            // set initialize for Gui in sidebar
             // set listener for JsMind changes
             guiSideBar = new GuiSideBar();
             guiSideBar.setJsmindListener(contextMenu);
@@ -1386,7 +1804,7 @@ function programCaller(data:any) {
         case "refresh":
         
             /**
-            * check if sidebar is existed, if yes then do refreshAnnotation
+            * check if sidebar has been existed, if yes then do refreshAnnotation
             */
             var isSideBarExist:boolean = guiSideBar.checkSideBar();
             if(isSideBarExist) {
@@ -1395,19 +1813,19 @@ function programCaller(data:any) {
             } 
 
             //get PDF's lists
-            var pdfProcess = listPdf.getPdf();
+            var pdfProcess = listPdf.getPdfFromFs();
             guiSideBar.resetSidebar();
             
             // get annotation's lists
             Promise.all([pdfProcess]).then(function(response){
                 listPdf.setListPdfFile(response[0]);
                 for(var i = 0; i < listPdf.getCount(); i++) {
-                    var pdfPages = listPdf.getPdfPage(listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
+                    var pdfPages = listPdf.getPdfPage(listPdf.getDirectory() + "\\" + listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
                     Promise.all([pdfPages, pdfProcess, i]).then(function(responsePages){
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[2]));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function(responseResult){
                             var resultJson:string = responseResult[2];
-                            guiSideBar.setGuiInit(resultJson);
+                            guiSideBar.setGuiInit(resultJson, listPdf.getDirectory());
                         })
                     })
                 }
@@ -1420,10 +1838,9 @@ function programCaller(data:any) {
          * When the refresh annotation is called
          */
         case "refreshAnnotation":
-            
-                // change has flag, saying if files changed or not.
-                // change[1] list of changed pdfs
-                // change[2] num of files changed
+            // change has flag, saying if files changed or not.
+            // change[1] list of changed pdfs
+            // change[2] num of files changed
             var change:any = listPdf.chkDateChange(util, listPdf.getListPdf());
             var listChange:string[] = change[1];
             var numChange: number = change[2];
@@ -1434,13 +1851,13 @@ function programCaller(data:any) {
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listChange[responsePages[1]]);
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function(responseResult){
                             var newNodes:NodesObject = JSON.parse(responseResult[2]);
-                            guiSideBar.setGuiOnAppend(newNodes);
+                            guiSideBar.setGuiOnAppend(newNodes, listPdf.getDirectory());
                         })
                     })
                 }
                 
             } else{
-                alert("No Change in Annotation");
+                gui.windowAlert("No Change in Annotation");
             }
             
             break;
@@ -1449,30 +1866,64 @@ function programCaller(data:any) {
             contextMenu.actionCopy();
             break;
         case "pasteMenu":
-            contextMenu.actionPaste();
+            contextMenu.actionPaste(project);
             break;
         case "openPDFMenu":
+            dir = listPdf.getDirectory();
             contextMenu.actionOpenPdf(dir);
+            break;
+        case "openPDFUserDefine":
+            dir = listPdf.getDirectory();
+            contextMenu.actionOpenPdfUserDefine(dir);
             break;
         case "cancelMenu":
             contextMenu.actionCancel();
             break;
+
+        case "newMindmap":
+            mindmapMenu.newMap(project);
+            break;
+        case "openExisting":
+            mindmapMenu.selectFile(project);
+            break;
+        case "saveFileMM":
+            var locationFile = mindmapMenu.saveFile("mm", project, util);
+            break;
+        case "saveFileJM":
+            var locationFile = mindmapMenu.saveFile("jm", project, util);
+            break;
+
         case "searchAnnotation":
+            //searching annotation based on a keyword
             var keyword:string = (<HTMLInputElement> document.getElementById("annotSearch")).value;
-            guiSideBar.searchAnnotation(keyword, util);
+            guiSideBar.searchAnnotation(keyword, util, listPdf.getDirectory());
             break;
         case "newProjectModal":
             //set modal of the new project
-            project.setNewProjectModal();
+            project.setNewProjectModal(listPdf);
+            break;
+        case "openProjectModal":
+            //set modal of the open project
+            project.setOpenProjectModal(util, guiSideBar, listPdf, mindmapMenu);
             break;
         case "newProject":
             //set routine for new project
-            project.checkNewProject();
-            project.createNewProject();
+            var newProjectStatus = project.checkNewProject(gui);
+            if(newProjectStatus) {project.createNewProject(util, guiSideBar, listPdf);}
             break;
-	}
-}
+        case "closeProject":
+            //set routine for close project
+            var status = project.getProjectStatus();
+            project.setCloseProject(guiSideBar, mindmapMenu, gui, status);
+            break;
+        case "saveProject":
+            // set routine for save project
+            var saveProjectStatus = gui.windowConfirmation("save changes?");
+            if(saveProjectStatus) {
+                var msg:string = project.setSaveProject(util);
+                gui.windowAlert("project is saved in" + " " + msg);
+            }
+            break;
 
-function menuAction(action:string, data:string) {
-    mindmapMenu[action](data);
+	}
 }

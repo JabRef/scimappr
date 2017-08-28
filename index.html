@@ -1,55 +1,208 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="images/favicon.ico">
-    <title>PDF.js</title>
-    <!-- Bootstrap core CSS-->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom styles for this template-->
-    <link href="css/main.css" rel="stylesheet">
-  </head>
-  <body>
-    <header class="navbar navbar-default navbar-static-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" data-toggle="collapse" data-target=".navbar-collapse" class="navbar-toggle"><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button><a href="#" class="navbar-brand"><img src="images/logo.svg"></a>
-        </div>
-        <div class="collapse navbar-collapse">
-          <ul class="nav navbar-nav">
-            <li class="active"><a href="">Home</a></li>
-            <li><a href="getting_started/">Getting Started</a></li>
-            <li><a href="examples/">Examples</a></li>
-            <li><a href="https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions">FAQ</a></li>
-            <li><a href="api/">API</a></li>
-          </ul>
-        </div>
-      </div>
-    </header>
-    <div class="container">
-      <div class="starter-template">
-        <section class="content"><p><h1 class="text-center"><span class="caps">PDF</span>.js</h1></p>
-<p class="text-center" style="font-size: 20px">A general-purpose, web standards-based platform for parsing and rendering<span class="widont">&nbsp;</span>PDFs.
-</p>
-<p class="text-center">
-  <a type="button" class="btn btn-lg btn-default" href="getting_started/#download">Download</a>
-  <a type="button" class="btn btn-lg btn-default" href="web/viewer.html">Demo</a>
-  <a type="button" class="btn btn-lg btn-default" href="https://github.com/mozilla/pdf.js">GitHub<span class="widont">&nbsp;</span>Project</a>
-</p>
-</section>
-      </div>
+<html>
+
+<!-- Section Head -->
+<head>
+    <title>Scimappr</title>
+
+    <!-- Requirements for JsMind, JQuery, Bootstrap, JsTree -->
+	<!--<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script> -->
+	<!--<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script> -->
+    <script type="text/javascript" src="./node_modules/jquery/dist/jquery.min.js" onload="window.$ = window.jQuery = module.exports;"></script>
+    <script type="text/javascript" src="./node_modules/jqueryui/jquery-ui.min.js"></script>
+
+  <link type="text/css" rel="stylesheet" href='./build/assets/jsmind.css'/>
+  
+	<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"> -->
+    <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+
+    <link type="text/css" rel="stylesheet" href='./build/assets/mindmap.css'/>
+    <link rel="stylesheet" href="./node_modules/bootstrap-treeview/dist/bootstrap-treeview.min.css" />
+</head>
+
+
+<!-- Section Body -->
+<body onload="programCaller('init')">
+<div id="header" class="navbar navbar-default navbar-fixed-top">
+    <div class="navbar-header">
+        <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target=".navbar-collapse">
+            <i class="icon-reorder"></i>
+        </button>
+        <a class="navbar-brand" href="#">Scimappr</a>
     </div>
-    <div class="container">
-      <footer>
-        <p>&copy;Mozilla and individual contributors</p><p>PDF.js is licensed under <a href="https://github.com/mozilla/pdf.js/blob/master/LICENSE">Apache</a>,
-documentation is licensed under <a href="http://creativecommons.org/licenses/by-sa/2.5/">CC BY-SA 2.5</a></p>
-      </footer>
+    <nav class="collapse navbar-collapse">
+        <ul class="nav navbar-nav">
+
+            <!-- Menu for Project -->
+            <li>
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Project<b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                    <!--<li><a data-toggle="modal" href="#myModal" data-target="#myModal">New Project</a></li> -->
+                    <li><a href="javascript:programCaller('newProjectModal')"><span class="glyphicon glyphicon-file"></span>&nbsp;New Project</a></li>
+                    <li><a href="javascript:programCaller('openProjectModal')"><span class="glyphicon glyphicon-folder-open"></span>&nbsp;&nbsp;Open Project</a></li>
+                    <li><a href="javascript:programCaller('saveProject')"><span class="glyphicon glyphicon-floppy-save"></span>&nbsp;Save Project</a></li>
+                    <li><a href="javascript:programCaller('closeProject')"><span class="glyphicon glyphicon-folder-close"></span>&nbsp;Close Project</a></li>
+                </ul>
+            </li>
+
+            <!-- Menu for Files -->
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Files<b class="caret"></b></a>
+                <ul class="dropdown-menu multi-level" role="menu" aria-labelledby="dropdownMenu">
+                    <li><a href="javascript:programCaller('newMindmap')">New MindMap</a></li>
+                    <li><a href="javascript:programCaller('openExisting')">Open Existing MindMap</a></li>
+                    <li class="dropdown-submenu">
+                        <a tabindex="-1" href="#">Save As</a>
+                        <ul class="dropdown-menu">
+                        <li><a tabindex="-1" href="javascript:programCaller('saveFileMM')">Save As Freemind (.mm)</a></li>
+                        <li><a tabindex="-1" href="javascript:programCaller('saveFileJM')">Save As jsMind (.jm)</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="javascript:myCloseConfirmation()">Close Mind Map</a></li>
+                    <li><a href="javascript:myExitConfirmation()">Exit</a></li>
+                </ul>
+            </li>
+
+            <!-- Menu for Refresh PDF -->
+            <li>
+                <a href="javascript:programCaller('refresh')"><span class="glyphicon glyphicon-refresh"></span>&nbsp;Refresh PDF</a>
+                <ul class="dropdown-menu">
+                </ul>
+            </li>
+        </ul>
+
+        <!-- User Name -->
+        <ul class="nav navbar-nav pull-right">
+            <li class="dropdown">
+                <a href="#" id="nbAcctDD" class="dropdown-toggle" data-toggle="dropdown"><i class="icon-user"></i>Username<i class="icon-sort-down"></i></a>
+                <ul class="dropdown-menu pull-right">
+                    <li><a href="#">Log Out</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+
+<div id="wrapper">
+
+    <!-- Side Bar Section -->
+    <div id="sidebar-wrapper" class="col-md-2">
+
+        <ul class="nav nav-tabs">
+            <li class="active">
+                <a href="#Project-tab" data-toggle="tab">Project</a>
+            </li>
+            <li>
+                <a href="#Annotation-tab" data-toggle="tab">Annotation</a>
+            </li>
+        </ul>
+
+        <div class="tab-content ">
+            <div class="tab-pane active" id="Project-tab">
+                <div id="tree"></div>
+            </div>
+            <div class="tab-pane" id="Annotation-tab" style="overflow-y: auto">
+                <form class="form-inline">
+                    <input type="text" id="annotSearch" class="form-control" name="annotSearch" style="max-width:100%;margin-left:10px; margin-top:10px;" placeholder="Search Annotation" autofocus>
+                    <button type="button" class="btn btn-lg" style="margin-top:10px" onclick="programCaller('searchAnnotation')"><span class="glyphicon glyphicon-search"></span></button>
+                </form>
+                <ul class="list-group" id="annotation-group" style="overflow-y: auto">
+
+                </ul>
+            </div>
+        </div>
+
     </div>
-    <!-- Bootstrap core JavaScript-->
-    <script src="js/jquery-2.1.0.min.js"></script>
-    <script src="js/bootstrap.min.js"></script>
-  </body>
+
+    <!-- Main Section of MindMap -->
+    <div id="main-wrapper" class="col-md-10 pull-right">
+        <div id="jsmind_container" class="panel-resizable drop"> </div>
+		<div style="display:none">
+            <input class="file" type="file" id="image-chooser" accept="image/*"/>
+            <input class="file" type="file" id="file-chooser" accept=".json"/>
+		</div>
+    </div>
+
+</div>
+
+<!-- Context Menu for Right Click -->
+<div id="push"></div>
+<div id="contextMenu" style="display: none; z-index: 200">
+    <div class="dropdown open">
+        <ul class="dropdown-menu">
+            <li class="actionOpenPdf" onClick="programCaller('openPDFMenu')">View PDF</li>
+            <li class="actionOpenPdf" onClick="programCaller('openPDFUserDefine')">Edit PDF</li>
+            <li class="actionCopy" onClick="programCaller('copyMenu')">Copy</li>
+            <li class="actionPaste" onClick="programCaller('pasteMenu')">Paste</li>
+            <li class="actionCancel" onClick="programCaller('cancelMenu')">Cancel</li>
+        </ul>
+    </div>
+</div>
+
+
+<!-- Modal for New Project -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Create New Project</h4>
+            </div>
+
+            <div class="modal-body">
+                <form>
+                    <p style="color:red; font-weight:bold">Before Creating a new Project, please add project name and the directory for the new project </p>
+                    <p></p>
+                    <p style="font-weight:bold; display:inline">Project Name: &nbsp; </p> <p style="color:red; display:inline"> *required </p>
+                    <input type="text" id="projectName" class="form-control" name="projectName" placeholder="Project Name" required autofocus><br>
+                    <!--Project Home:<input type="text" id="projectHome" name="projectHome" style="background: lightgray" required readonly><br> -->
+                    <p style="font-weight:bold; display:inline">Project PDF: &nbsp; </p> <p style="color:red; display:inline"> *required </p>
+                    <input type="text" id="projectPdf" class="form-control" name="projectPdf" placeholder="Project PDFs" style="background: lightgray" required readonly>
+                    <input type="file" id="projectPdfSelection" style="display:none" webkitdirectory directory multiple accept=".pdf"/>
+                    <input type="button" value="Browse..." style="margin-top:10px; margin-bottom:10px; font-weight:bold" onclick="document.getElementById('projectPdfSelection').click();" />
+                    <p hidden class="ProjName" style="color:red"> *Project Name must be fulfilled </p>
+                    <p hidden class="ProjPdf" style="color:red"> *PDF must be specified </p>
+                </form>
+            </div>
+
+            <div class = "modal-footer">
+                <button class="btn btn-default" data-dismiss="modal">Close</button>
+                <button id="buttonSave" type="button" class="btn btn-primary" onclick="programCaller('newProject')">Save changes</button>
+            </div>
+
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+
+    <input style="display:none" type="file" id="mindmap-chooser" accept=".jm,.mm" />
+
+	<!-- Latest compiled and minified JavaScript -->
+	<!--<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script> -->
+    <script src="./node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+
+	<!-- JSMind Code Section -->
+	<script type="text/javascript" src='./build/assets/jsmind.js'></script>
+	<script type="text/javascript" src='./build/assets/jsmind.draggable.js'></script>
+    <script type="text/javascript" src='./build/assets/jsmind.screenshot.js'></script>
+
+    <!-- Pouch DB Section -->
+    <script type="text/javascript" src='./build/assets/pouchdb-6.3.4.min.js'></script>
+
+	<!-- MindMap Main Code Section -->
+    <!-- For mindmap in general Purposes -->
+    <!-- <script type="text/javascript" src='/scimappr/build/assets/mindmap.js'></script> -->
+    <script type="text/javascript" src='./build/assets/mindmap.main.js'></script>
+    <!-- For GUI Purposes -->
+    <!-- <script type="text/javascript" src="/scimappr/build/assets/mindmap.gui.js"></script> -->
+    <script type="text/javascript" src="./build/assets/pdf.js"></script> <!-- Main Code of PDF.js -->
+    <!-- For PDF Parsing Purposes -->
+    <!-- <script type="text/javascript" src="/scimappr/build/assets/mindmap.pdf.js"></script> -->
+    <script type="text/javascript" src='./build/assets/sha1-min.js'></script> <!-- For PDF ID Using  sha1 Hash Purposes -->
+
+    <!--<script src="./node_modules/jstree/dist/jstree.min.js"></script> For Side Bar Tree View -->
+    <script type="text/javascript" src='./node_modules/bootstrap-treeview/dist/bootstrap-treeview.min.js'></script> <!-- For Treeview Purposes -->
+
+
+</body>
 </html>

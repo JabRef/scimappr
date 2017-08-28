@@ -1,18 +1,17 @@
 {
-  "name": "pdfjs",
+  "name": "Scimappr",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
-  "directories": {
-    "example": "examples"
-  },
+  "description": "application for mindmap in internet",
+  "main": "init.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron ."
   },
-  "author": "",
+  "author": "M Dandy Firmansyah",
   "license": "ISC",
+  "devDependencies": {
+    "electron-prebuilt": "^1.4.13"
+  },
   "dependencies": {
-    "body-parser": "^1.17.2",
-    "express": "^4.15.2"
+    "bootstrap": "^3.3.7"
   }
 }
