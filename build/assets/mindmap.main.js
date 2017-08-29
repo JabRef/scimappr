@@ -697,7 +697,7 @@ var Utils = (function () {
     Utils.prototype.writeAnyTypeFile = function (path, input, name, type) {
         var fs = require('fs');
         var buffer = new Buffer(input);
-        fs.open(path + "\\" + name + type, 'w', function (err, fd) {
+        fs.open(path + "\\" + name + "." + type, 'w', function (err, fd) {
             if (err) {
                 throw 'error opening file: ' + err;
             }
@@ -739,6 +739,22 @@ var Utils = (function () {
                 console.log('Data has been appended to ' + path + "\\" + name + ".json");
             });
         });
+    };
+    Utils.prototype.readAnyTypeFile = function (fullpath, readingtype, type) {
+        var fs = require('fs');
+        var filepath = null;
+        if (type != null) {
+            filepath = fullpath + "." + type;
+        }
+        else {
+            filepath = fullpath;
+        }
+        var result = new Promise(function (resolve, reject) {
+            fs.readFile(filepath, readingtype, function (err, contents) {
+                resolve(contents);
+            });
+        });
+        return result;
     };
     return Utils;
 }());
@@ -852,48 +868,57 @@ var MindmapMenu = (function () {
         var file_input = document.getElementById('mindmap-chooser');
         file_input.click();
     };
-    MindmapMenu.prototype.setOpenFileListener = function (input) {
+    MindmapMenu.prototype.setOpenFileListener = function () {
+        var self = this;
         var mindMapChooser = document.getElementById('mindmap-chooser');
-        if ((input != null) || input != undefined) {
-            mindMapChooser = input;
-        }
         mindMapChooser.addEventListener('change', function (event) {
             var files = mindMapChooser.files;
+            console.log(files);
             if (files.length <= 0) {
                 alert('please choose a file first');
             }
             var file_data = files[0];
             if (/.*\.mm$/.test(file_data.name)) {
                 jsMind.util.file.read(file_data, function (freemind_data, freemind_name) {
-                    if (freemind_data) {
-                        var mind_name = freemind_name.substring(0, freemind_name.length - 3);
-                        var mind = {
-                            "meta": {
-                                "name": mind_name,
-                                "version": "1.0.1"
-                            },
-                            "format": "freemind",
-                            "data": freemind_data
-                        };
-                        _jm.show(mind);
-                    }
-                    else {
-                        alert('The selected file is not supported');
-                    }
+                    self.loadFileJsMind(freemind_data, "mm", freemind_name);
                 });
             }
             else {
                 jsMind.util.file.read(file_data, function (jsmind_data, jsmind_name) {
-                    var mind = jsMind.util.json.string2json(jsmind_data);
-                    if (!!mind) {
-                        _jm.show(mind);
-                    }
-                    else {
-                        alert('The selected file is not supported');
-                    }
+                    self.loadFileJsMind(jsmind_data, "jm", jsmind_name);
                 });
             }
         });
+    };
+    MindmapMenu.prototype.loadFileJsMind = function (content, type, freemind_name) {
+        if (type == "mm") {
+            var freemind_data = content;
+            if (freemind_data) {
+                var mind_name = freemind_name.substring(0, freemind_name.length - 3);
+                var mind = {
+                    "meta": {
+                        "name": mind_name,
+                        "version": "1.0.1"
+                    },
+                    "format": "freemind",
+                    "data": freemind_data
+                };
+                _jm.show(mind);
+            }
+            else {
+                alert('The selected file is not supported');
+            }
+        }
+        else {
+            var jsmind_data = content;
+            mind = jsMind.util.json.string2json(jsmind_data);
+            if (!!mind) {
+                _jm.show(mind);
+            }
+            else {
+                alert('The selected file is not supported');
+            }
+        }
     };
     return MindmapMenu;
 }());
@@ -1479,11 +1504,20 @@ var Project = (function () {
         self.saveTreeView(util, guiSideBar, listPdf, self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
         listPdf.setDirectory(self.getProjectLocation());
         var htmlContent = document.getElementById('mindmap-chooser');
-        htmlContent.filename = self.getProjectSavedFileLocation();
-        mindmapMenu.setOpenFileListener(htmlContent);
-        programCaller('refresh');
-    };
-    Project.prototype.loadMMJMFile = function () {
+        var fileName = self.getProjectName();
+        var content = util.readAnyTypeFile(self.getProjectSavedFileLocation(), 'utf8');
+        Promise.all([content]).then(function (result) {
+            if (self.getProjectSavedFileLocation().indexOf(".mm") == -1) {
+                // if file is not .mm
+                var type = "jm";
+            }
+            else {
+                //if file is .mm
+                type = "mm";
+            }
+            mindmapMenu.loadFileJsMind(result, type, fileName + "." + type);
+            programCaller('refresh');
+        });
     };
     /**
      * When close project is pressed

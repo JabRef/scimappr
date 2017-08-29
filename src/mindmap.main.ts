@@ -802,7 +802,7 @@ class Utils {
         var fs = require('fs');
         var buffer = new Buffer(input); 
 
-        fs.open(path+"\\"+name+type, 'w', function(err, fd) {
+        fs.open(path+"\\"+name+"."+type, 'w', function(err, fd) {
             if (err) {
                 throw 'error opening file: ' + err;
             }
@@ -848,6 +848,26 @@ class Utils {
                 console.log('Data has been appended to ' + path+"\\"+name+".json");
             });
         });
+    }
+
+    public readAnyTypeFile(fullpath:string, readingtype:string, type:string):any {
+        var fs = require('fs');
+        var filepath:string = null;
+
+        if(type != null) {
+            filepath = fullpath+"."+type;
+        } else {
+            filepath = fullpath;
+        }
+
+        var result = new Promise(function(resolve, reject){
+            fs.readFile(filepath, readingtype, function(err, contents){
+                resolve(contents);
+            });
+        });
+
+        return result;
+
     }
 
 }
@@ -985,14 +1005,13 @@ class MindmapMenu {
         file_input.click();
     }
 
-    public setOpenFileListener(input:any) {
+    public setOpenFileListener() {
+        var self = this;
         var mindMapChooser = <HTMLInputElement>document.getElementById('mindmap-chooser');
-        if((input != null) || input != undefined) {
-            mindMapChooser = input;
-        } 
         
         mindMapChooser.addEventListener('change', function (event) {
             var files:FileList = mindMapChooser.files;
+            console.log(files);
             if (files.length <= 0) {
                 alert('please choose a file first')
             }
@@ -1000,32 +1019,43 @@ class MindmapMenu {
             var file_data = files[0];
             if (/.*\.mm$/.test(file_data.name)) {
                 jsMind.util.file.read(file_data, function (freemind_data, freemind_name){
-                    if (freemind_data) {
-                        var mind_name = freemind_name.substring(0, freemind_name.length-3);
-                        var mind = {
-                            "meta":{
-                                "name": mind_name,
-                                "version":"1.0.1"
-                            },
-                            "format":"freemind",
-                            "data": freemind_data
-                        };
-                        _jm.show(mind);
-                    } else {
-                        alert('The selected file is not supported');
-                    }
+                    self.loadFileJsMind(freemind_data, "mm", freemind_name);
                 });
             } else {
                 jsMind.util.file.read(file_data,function (jsmind_data, jsmind_name) {
-                    var mind = jsMind.util.json.string2json(jsmind_data);
-                    if (!!mind) {
-                        _jm.show(mind);
-                    } else {
-                        alert('The selected file is not supported');
-                    }
+                    self.loadFileJsMind(jsmind_data, "jm", jsmind_name);
                 });
             }
+
         });
+    }
+
+    public loadFileJsMind(content:any, type:string, freemind_name:any) {
+        if(type == "mm") {
+            var freemind_data = content;
+            if (freemind_data) {
+            var mind_name = freemind_name.substring(0, freemind_name.length-3);
+            var mind = {
+                "meta":{
+                "name": mind_name,
+                "version":"1.0.1"
+                },
+                "format":"freemind",
+                "data": freemind_data
+                };
+                _jm.show(mind);
+            } else {
+                    alert('The selected file is not supported');
+            }
+        } else {
+            var jsmind_data = content;
+            mind = jsMind.util.json.string2json(jsmind_data);
+            if (!!mind) {
+                _jm.show(mind);
+            } else {
+                alert('The selected file is not supported');
+            }
+        }
     }
 }
 
@@ -1682,14 +1712,24 @@ class Project {
         listPdf.setDirectory(self.getProjectLocation());
 
         var htmlContent:any = (<HTMLInputElement> document.getElementById('mindmap-chooser'));
-        htmlContent.filename = self.getProjectSavedFileLocation();
-        mindmapMenu.setOpenFileListener(htmlContent);
+        var fileName:string = self.getProjectName();
+        var content = util.readAnyTypeFile(self.getProjectSavedFileLocation(), 'utf8');
 
-        programCaller('refresh');
-    }
+        Promise.all([content]).then(function(result){
+            if(self.getProjectSavedFileLocation().indexOf(".mm") == -1) {
+                // if file is not .mm
+                var type:string = "jm";
+            } else {
+                //if file is .mm
+                type = "mm";
+            }
 
-    private loadMMJMFile() {
+            mindmapMenu.loadFileJsMind(result, type, fileName+"."+type);
 
+            programCaller('refresh');
+        });
+
+        
     }
 
     /**
