@@ -119,7 +119,8 @@ var Nodes = (function () {
                 var pagenumber = ui.helper.prevObject[0].value;
                 var directory = ui.helper.prevObject[0].href;
                 var node = _jm.add_node(selected_node, nodeid, topic, "", pdfid, pagenumber);
-                _this.addPdfButton(pdfid, nodeid, pagenumber);
+                gui = new Gui();
+                gui.setPdfButton(nodeid, pdfid, pagenumber, _this);
                 project.setProjectStatus('edited');
             }
         };
@@ -137,28 +138,6 @@ var Nodes = (function () {
             if (All[i].getAttribute(attr) == val) {
                 return All[i];
             }
-        }
-    };
-    /**
-    * adding PDF image link inside MindMap
-    */
-    Nodes.prototype.addPdfButton = function (pdfid, nodeid, pagenumber) {
-        if ((pdfid != "undefine") || (pdfid != null)) {
-            var pdfViewer = "./build/pdf.js/web/viewer.html";
-            //var fileName:string = "?File=" + "./" + pdfid;
-            var fileName = "?file=" + pdfid;
-            var pageNumber = "#page=" + pagenumber.toString();
-            var link = pdfViewer + fileName + pageNumber;
-            var linkElement = document.createElement("a");
-            linkElement.setAttribute("href", link);
-            linkElement.setAttribute("target", "_blank");
-            linkElement.setAttribute("style", "z-index:5; float:left; padding-right:5px");
-            var imgElement = document.createElement("img");
-            imgElement.setAttribute("id", nodeid);
-            imgElement.setAttribute("src", "./build/img/pdf.png");
-            linkElement.appendChild(imgElement);
-            var selection = this.findNodeByAttribute("nodeid", nodeid);
-            selection.appendChild(linkElement);
         }
     };
     return Nodes;
@@ -919,6 +898,7 @@ var MindmapMenu = (function () {
                 alert('The selected file is not supported');
             }
         }
+        return mind;
     };
     return MindmapMenu;
 }());
@@ -965,6 +945,56 @@ var Gui = (function () {
      */
     Gui.prototype.windowAlert = function (msg) {
         alert(msg);
+    };
+    Gui.prototype.loadPdfButton = function (util, contents) {
+        var self = this;
+        var jmnodes = document.querySelectorAll('jmnodes');
+        var nodes = jmnodes[0].children;
+        var node = null;
+        var content = contents[0];
+        var counter = 0;
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].nodeName == "JMNODE") {
+                var tempContent = content.annotation[counter];
+                var realContent = tempContent[0];
+                counter++;
+                if (realContent.id == nodes[i].attributes[0].value) {
+                    if (realContent.id != "root") {
+                        node = new Nodes(realContent.id, realContent.text, realContent.file, realContent.page);
+                        self.setPdfButton(node.getId(), node.getFileName(), node.getPageNumber().toString, node);
+                    }
+                }
+                else {
+                    counter--;
+                }
+            }
+        }
+    };
+    /**
+     *
+     * @param nodeid
+     * @param pdfid
+     * @param pagenumber
+     * @param node
+     */
+    Gui.prototype.setPdfButton = function (nodeid, pdfid, pagenumber, node) {
+        if ((pdfid != "undefine") || (pdfid != null)) {
+            var pdfViewer = "./build/pdf.js/web/viewer.html";
+            //var fileName:string = "?File=" + "./" + pdfid;
+            var fileName = "?file=" + pdfid;
+            var pageNumber = "#page=" + pagenumber.toString();
+            var link = pdfViewer + fileName + pageNumber;
+            var linkElement = document.createElement("a");
+            linkElement.setAttribute("href", link);
+            linkElement.setAttribute("target", "_blank");
+            linkElement.setAttribute("style", "z-index:5; float:left; padding-right:5px");
+            var imgElement = document.createElement("img");
+            imgElement.setAttribute("id", nodeid);
+            imgElement.setAttribute("src", "./build/img/pdf.png");
+            linkElement.appendChild(imgElement);
+            var selection = node.findNodeByAttribute("nodeid", nodeid);
+            selection.appendChild(linkElement);
+        }
     };
     /**
      * used for creating new project window
@@ -1496,7 +1526,6 @@ var Project = (function () {
      */
     Project.prototype.openProject = function (data, self, util, guiSideBar, listPdf, mindmapMenu) {
         var dataObject = util.parseJsonFile(data);
-        console.log(dataObject);
         self.setProjectName(dataObject[0].project[0].projectname);
         self.setProjectLocation(dataObject[0].project[0].projectlocation);
         self.setProjectPdfList(dataObject[0].project[0].projectfiles);
@@ -1516,15 +1545,18 @@ var Project = (function () {
                 type = "mm";
             }
             mindmapMenu.loadFileJsMind(result, type, fileName + "." + type);
+            var gui = new Gui();
+            gui.loadPdfButton(util, dataObject);
             programCaller('refresh');
         });
     };
     /**
-     * When close project is pressed
-     * @param guiSideBar
-     * @param menu
-     */
-    Project.prototype.setCloseProject = function (guiSideBar, menu, gui, status) {
+      * When close project is pressed
+      * @param guiSideBar
+      * @param menu
+      */
+    Project.prototype.setCloseProject = function (guiSideBar, menu, status) {
+        var gui = new Gui();
         if (status == "noedit") {
             // do nothing
         }
@@ -1681,7 +1713,7 @@ function programCaller(data) {
             project.setOpenProjectModal(util, guiSideBar, listPdf, mindmapMenu);
             break;
         case "newProject":
-            //set routine for new project
+            //set routine for new project (when save in new project is pressed)
             var newProjectStatus = project.checkNewProject(gui);
             if (newProjectStatus) {
                 project.createNewProject(util, guiSideBar, listPdf);
@@ -1690,7 +1722,7 @@ function programCaller(data) {
         case "closeProject":
             //set routine for close project
             var status = project.getProjectStatus();
-            project.setCloseProject(guiSideBar, mindmapMenu, gui, status);
+            project.setCloseProject(guiSideBar, mindmapMenu, status);
             break;
         case "saveProject":
             // set routine for save project
