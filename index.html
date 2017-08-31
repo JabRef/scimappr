@@ -51,14 +51,12 @@
                     <li><a href="javascript:programCaller('newMindmap')">New MindMap</a></li>
                     <li><a href="javascript:programCaller('openExisting')">Open Existing MindMap</a></li>
                     <li class="dropdown-submenu">
-                        <a tabindex="-1" href="#">Save As</a>
+                        <a tabindex="-1" href="#">Save MindMap</a>
                         <ul class="dropdown-menu">
                         <li><a tabindex="-1" href="javascript:programCaller('saveFileMM')">Save As Freemind (.mm)</a></li>
                         <li><a tabindex="-1" href="javascript:programCaller('saveFileJM')">Save As jsMind (.jm)</a></li>
                         </ul>
                     </li>
-                    <li><a href="javascript:myCloseConfirmation()">Close Mind Map</a></li>
-                    <li><a href="javascript:myExitConfirmation()">Exit</a></li>
                 </ul>
             </li>
 
@@ -158,8 +156,8 @@
                     <!--Project Home:<input type="text" id="projectHome" name="projectHome" style="background: lightgray" required readonly><br> -->
                     <p style="font-weight:bold; display:inline">Project PDF: &nbsp; </p> <p style="color:red; display:inline"> *required </p>
                     <input type="text" id="projectPdf" class="form-control" name="projectPdf" placeholder="Project PDFs" style="background: lightgray" required readonly>
-                    <input type="file" id="projectPdfSelection" style="display:none" webkitdirectory directory multiple accept=".pdf"/>
-                    <input type="button" value="Browse..." style="margin-top:10px; margin-bottom:10px; font-weight:bold" onclick="document.getElementById('projectPdfSelection').click();" />
+                    <input type="file" id="pdf-chooser" style="display:none" webkitdirectory directory multiple accept=".pdf"/>
+                    <input type="button" value="Browse..." style="margin-top:10px; margin-bottom:10px; font-weight:bold" onclick="document.getElementById('pdf-chooser').click();" />
                     <p hidden class="ProjName" style="color:red"> *Project Name must be fulfilled </p>
                     <p hidden class="ProjPdf" style="color:red"> *PDF must be specified </p>
                 </form>

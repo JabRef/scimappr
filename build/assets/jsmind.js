@@ -207,14 +207,14 @@
             }
         },
 
-        add_node:function(parent_node, nodeid, topic, data, idx, direction, expanded, pdfId){
+        add_node:function(parent_node, nodeid, topic, data, pdfId, idx, direction, expanded){
             if(!jm.util.is_node(parent_node)){
                 var the_parent_node = this.get_node(parent_node);
                 if(!the_parent_node){
                     logger.error('the parent_node[id='+parent_node+'] can not be found.');
                     return null;
                 }else{
-                    return this.add_node(the_parent_node, nodeid, topic, data, idx, direction, expanded, pdfId);
+                    return this.add_node(the_parent_node, nodeid, topic, data, pdfId, idx, direction, expanded);
                 }
             }
             var nodeindex = idx || -1;
@@ -1342,7 +1342,7 @@
 
         add_node:function(parent_node, nodeid, topic, data, pdfid){
             if(this.get_editable()){
-                var node = this.mind.add_node(parent_node, nodeid, topic, data, "", "", "", pdfid);
+                var node = this.mind.add_node(parent_node, nodeid, topic, data, pdfid);
                 if(!!node){
                     this.view.add_node(node);
                     this.layout.layout();
