@@ -930,14 +930,14 @@ class MindmapMenu {
         return this.fileTypeSave;
     }
 
-    public newMap(project:any) {
+    public newMap(project:any, rootName:string) {
         var mindmap = {
             "meta":{
                 "name":"jsMind",
                 "version":"0.2"
             },
             "format":"node_tree",
-            "data":{"id":"root","topic":"Root","children": [] }
+            "data":{"id":"root","topic":rootName,"children": [] }
         };
         this.jsMindObject.show(mindmap);
         (<HTMLInputElement> document.querySelector('#mindmap-chooser')).value = '';// Reset the file selector
@@ -1216,7 +1216,7 @@ class Gui {
  */
 class GuiSideBar extends Gui {
 
-    private basicHtmlTitle:string;
+    private basicHtmlTitle:any;
     private basicHtmlContent:any;
 
     /**
@@ -1231,7 +1231,7 @@ class GuiSideBar extends Gui {
 
         // Parse JSON File
 		var objekt = util.parseJsonFile(data);
-		var titleFile = "";
+		var titleFile:any = null;
 
         for(var i = 0; i < objekt.length; i++) {
             var tempObject = objekt[i];
@@ -1253,7 +1253,7 @@ class GuiSideBar extends Gui {
     }
 
     /**
-     *Clear the side bar
+     *Clear the side bar annotation tab
      */
     public resetSidebar() {
         $("#annotation-group").empty();
@@ -1310,7 +1310,7 @@ class GuiSideBar extends Gui {
     }
 
     /**
-     * Set Treeview based on input data in JSON Format
+     * Set Treeview in sidebar project tab based on input data in JSON Format (root.json)
      * @param input 
      */
     public setTreeListener(input:string) {
@@ -1318,7 +1318,7 @@ class GuiSideBar extends Gui {
     }
 
     /**
-     * Clear Treeview
+     * Clear Treeview in sidebar project tab
      */
     public resetTreeView() {
         $('#tree').treeview({data:""});
@@ -1326,7 +1326,9 @@ class GuiSideBar extends Gui {
 
     /**
      * Set the dynamic HTML for the input of the object
-     * @param objekt
+     * @param objekt 
+     * @param mode 
+     * @param directory 
      */
     private setDynamicHtml(objekt:NodesObject, mode:string, directory:string) {
         var node;
@@ -1357,7 +1359,12 @@ class GuiSideBar extends Gui {
      */
     private setDynamicHtmlTitle(util, id:string, fileName:string):string {
         var pdfId = util.getHashFunction(id);
-        this.basicHtmlTitle = "<li id=" + pdfId  + " " + "class=pdf-title" + " " +  "style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + fileName + "</li>";
+        var htmlContent = document.createElement("li");
+        htmlContent.setAttribute("id", pdfId);
+        htmlContent.setAttribute("class", "pdf-title");
+        htmlContent.setAttribute("style", 'cursor: no-drop; background-color: #ccc; padding: 10px 18px; font-weight:bold');
+        htmlContent.innerHTML = fileName;
+        this.basicHtmlTitle = htmlContent;
         return this.basicHtmlTitle;
     }
 
@@ -1539,6 +1546,9 @@ class Project {
         this.setNewProjectListener()     
     }
 
+    /**
+     * Listener to the New Project
+     */
     private setNewProjectListener() {
         var self:any = this;
         var pathName:string = "";
@@ -1584,21 +1594,18 @@ class Project {
 
     /**
      * When save button is pressed in new project modal
-     * @param util 
-     * @param guiSideBar 
-     * @param listPdf 
      */
     public createNewProject() {
         this.setProjectName((<HTMLInputElement> document.getElementById("projectName")).value);
         this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), "");
         this.saveTreeView(this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList());
         this.setProjectStatus("edited");
+        mindmapMenu.newMap(this, this.getProjectName());
         programCaller('refresh');
     }
 
     /**
      * to save project
-     * @param util 
      */
     public setSaveProject():string {
         var msg:string = this.getProjectLocation();
@@ -1617,7 +1624,7 @@ class Project {
     private saveProject(util:any, projectName:string, projectLoc:string, listFiles:string[], projectSavedFile:string) {
         var project:any = [];
         var annotation:any = [];
-        var correspondingnode:any = [];
+        var childnode:any = [];
         var itemResult:any = [];
         var nodes:any = [];
         var counter:number = 0;
@@ -1632,26 +1639,26 @@ class Project {
         // to populate the annotation section from .JSON file
         for(var i = 0; i < nodes.length; i++) {
             var temp = nodes[i];
-            correspondingnode = [];
+            childnode = [];
         if(temp.children.length == 0) {
-            correspondingnode.push("");
+            childnode.push("");
         } else {
                 for(var j = 0; j < temp.children.length; j++) {
-                    correspondingnode.push([
+                    childnode.push([
                             temp.children[j].id
                     ]);
                 }
                 
             }
-        annotation.push(this.setArrayAnnotation(correspondingnode, nodes, i));
+        annotation.push(this.setArrayAnnotation(childnode, nodes, i));
         }
 
         // to populate the project section from .JSON file
         project.push({
-                projectname: projectName,
-                projectlocation: projectLoc,
-                projectsavedfile: projectSavedFile,
-                projectfiles: listFiles
+                name: projectName,
+                location: projectLoc,
+                savedfile: projectSavedFile,
+                files: listFiles
         });
 
         // build the JSON file with combine of project and annotation
@@ -1663,12 +1670,12 @@ class Project {
         util.writeJsonFile(projectLoc, result, projectName);
     }
 
-    private setArrayAnnotation(correspondingnode:any, nodes:any, i:any):any {
+    private setArrayAnnotation(childnode:any, nodes:any, i:any):any {
         var annotation:any = [];
         annotation.push({
                     id: nodes[i].id,
                     text: nodes[i].topic,
-                    correspondingnode,
+                    childnode,
                     file: nodes[i].pdfid,
                     page: nodes[i].index,
                     placed: nodes[i].expanded
@@ -1740,10 +1747,10 @@ class Project {
      */
     private openProject(data:string, self:any) {
         var dataObject:object = util.parseJsonFile(data);
-        self.setProjectName(dataObject[0].project[0].projectname);
-        self.setProjectLocation(dataObject[0].project[0].projectlocation);
-        self.setProjectPdfList(dataObject[0].project[0].projectfiles);
-        self.setProjectSavedFileLocation(dataObject[0].project[0].projectsavedfile);
+        self.setProjectName(dataObject[0].project[0].name);
+        self.setProjectLocation(dataObject[0].project[0].location);
+        self.setProjectPdfList(dataObject[0].project[0].files);
+        self.setProjectSavedFileLocation(dataObject[0].project[0].savedfile);
         self.saveTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
 
         listPdf.setDirectory(self.getProjectLocation());
@@ -1793,7 +1800,7 @@ class Project {
         guiSideBar.resetTreeView();
         guiSideBar.resetSidebar();
         this.setProjectStatus("noedit");
-        mindmapMenu.newMap(project);
+        mindmapMenu.newMap(project, "Root");
     }
 
 }
@@ -1959,7 +1966,7 @@ function programCaller(data:any) {
             break;
 
         case "newMindmap":
-            mindmapMenu.newMap(project);
+            mindmapMenu.newMap(project, "Root");
             break;
         case "openExisting":
             mindmapMenu.selectFile();

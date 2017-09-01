@@ -805,14 +805,14 @@ var MindmapMenu = (function () {
     MindmapMenu.prototype.getFileTypeSave = function () {
         return this.fileTypeSave;
     };
-    MindmapMenu.prototype.newMap = function (project) {
+    MindmapMenu.prototype.newMap = function (project, rootName) {
         var mindmap = {
             "meta": {
                 "name": "jsMind",
                 "version": "0.2"
             },
             "format": "node_tree",
-            "data": { "id": "root", "topic": "Root", "children": [] }
+            "data": { "id": "root", "topic": rootName, "children": [] }
         };
         this.jsMindObject.show(mindmap);
         document.querySelector('#mindmap-chooser').value = ''; // Reset the file selector
@@ -1082,7 +1082,7 @@ var GuiSideBar = (function (_super) {
         var util = new Utils();
         // Parse JSON File
         var objekt = util.parseJsonFile(data);
-        var titleFile = "";
+        var titleFile = null;
         for (var i = 0; i < objekt.length; i++) {
             var tempObject = objekt[i];
             titleFile = this.setDynamicHtmlTitle(util, tempObject["filename"], tempObject["filename"]);
@@ -1098,7 +1098,7 @@ var GuiSideBar = (function (_super) {
         this.setDynamicHtml(object, "append", directory);
     };
     /**
-     *Clear the side bar
+     *Clear the side bar annotation tab
      */
     GuiSideBar.prototype.resetSidebar = function () {
         $("#annotation-group").empty();
@@ -1150,14 +1150,14 @@ var GuiSideBar = (function (_super) {
         }
     };
     /**
-     * Set Treeview based on input data in JSON Format
+     * Set Treeview in sidebar project tab based on input data in JSON Format (root.json)
      * @param input
      */
     GuiSideBar.prototype.setTreeListener = function (input) {
         $('#tree').treeview({ data: input });
     };
     /**
-     * Clear Treeview
+     * Clear Treeview in sidebar project tab
      */
     GuiSideBar.prototype.resetTreeView = function () {
         $('#tree').treeview({ data: "" });
@@ -1165,6 +1165,8 @@ var GuiSideBar = (function (_super) {
     /**
      * Set the dynamic HTML for the input of the object
      * @param objekt
+     * @param mode
+     * @param directory
      */
     GuiSideBar.prototype.setDynamicHtml = function (objekt, mode, directory) {
         var node;
@@ -1195,7 +1197,12 @@ var GuiSideBar = (function (_super) {
      */
     GuiSideBar.prototype.setDynamicHtmlTitle = function (util, id, fileName) {
         var pdfId = util.getHashFunction(id);
-        this.basicHtmlTitle = "<li id=" + pdfId + " " + "class=pdf-title" + " " + "style='cursor: no-drop; background-color: #ccc;padding: 10px 18px'>" + fileName + "</li>";
+        var htmlContent = document.createElement("li");
+        htmlContent.setAttribute("id", pdfId);
+        htmlContent.setAttribute("class", "pdf-title");
+        htmlContent.setAttribute("style", 'cursor: no-drop; background-color: #ccc; padding: 10px 18px; font-weight:bold');
+        htmlContent.innerHTML = fileName;
+        this.basicHtmlTitle = htmlContent;
         return this.basicHtmlTitle;
     };
     /**
@@ -1354,6 +1361,9 @@ var Project = (function () {
         gui.windowNewProject();
         this.setNewProjectListener();
     };
+    /**
+     * Listener to the New Project
+     */
     Project.prototype.setNewProjectListener = function () {
         var self = this;
         var pathName = "";
@@ -1393,20 +1403,17 @@ var Project = (function () {
     };
     /**
      * When save button is pressed in new project modal
-     * @param util
-     * @param guiSideBar
-     * @param listPdf
      */
     Project.prototype.createNewProject = function () {
         this.setProjectName(document.getElementById("projectName").value);
         this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), "");
         this.saveTreeView(this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList());
         this.setProjectStatus("edited");
+        mindmapMenu.newMap(this, this.getProjectName());
         programCaller('refresh');
     };
     /**
      * to save project
-     * @param util
      */
     Project.prototype.setSaveProject = function () {
         var msg = this.getProjectLocation();
@@ -1424,7 +1431,7 @@ var Project = (function () {
     Project.prototype.saveProject = function (util, projectName, projectLoc, listFiles, projectSavedFile) {
         var project = [];
         var annotation = [];
-        var correspondingnode = [];
+        var childnode = [];
         var itemResult = [];
         var nodes = [];
         var counter = 0;
@@ -1437,25 +1444,25 @@ var Project = (function () {
         // to populate the annotation section from .JSON file
         for (var i = 0; i < nodes.length; i++) {
             var temp = nodes[i];
-            correspondingnode = [];
+            childnode = [];
             if (temp.children.length == 0) {
-                correspondingnode.push("");
+                childnode.push("");
             }
             else {
                 for (var j = 0; j < temp.children.length; j++) {
-                    correspondingnode.push([
+                    childnode.push([
                         temp.children[j].id
                     ]);
                 }
             }
-            annotation.push(this.setArrayAnnotation(correspondingnode, nodes, i));
+            annotation.push(this.setArrayAnnotation(childnode, nodes, i));
         }
         // to populate the project section from .JSON file
         project.push({
-            projectname: projectName,
-            projectlocation: projectLoc,
-            projectsavedfile: projectSavedFile,
-            projectfiles: listFiles
+            name: projectName,
+            location: projectLoc,
+            savedfile: projectSavedFile,
+            files: listFiles
         });
         // build the JSON file with combine of project and annotation
         itemResult.push({
@@ -1465,12 +1472,12 @@ var Project = (function () {
         var result = util.setJsonFile(itemResult);
         util.writeJsonFile(projectLoc, result, projectName);
     };
-    Project.prototype.setArrayAnnotation = function (correspondingnode, nodes, i) {
+    Project.prototype.setArrayAnnotation = function (childnode, nodes, i) {
         var annotation = [];
         annotation.push({
             id: nodes[i].id,
             text: nodes[i].topic,
-            correspondingnode: correspondingnode,
+            childnode: childnode,
             file: nodes[i].pdfid,
             page: nodes[i].index,
             placed: nodes[i].expanded
@@ -1534,10 +1541,10 @@ var Project = (function () {
      */
     Project.prototype.openProject = function (data, self) {
         var dataObject = util.parseJsonFile(data);
-        self.setProjectName(dataObject[0].project[0].projectname);
-        self.setProjectLocation(dataObject[0].project[0].projectlocation);
-        self.setProjectPdfList(dataObject[0].project[0].projectfiles);
-        self.setProjectSavedFileLocation(dataObject[0].project[0].projectsavedfile);
+        self.setProjectName(dataObject[0].project[0].name);
+        self.setProjectLocation(dataObject[0].project[0].location);
+        self.setProjectPdfList(dataObject[0].project[0].files);
+        self.setProjectSavedFileLocation(dataObject[0].project[0].savedfile);
         self.saveTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
         listPdf.setDirectory(self.getProjectLocation());
         var htmlContent = document.getElementById('mindmap-chooser');
@@ -1580,7 +1587,7 @@ var Project = (function () {
         guiSideBar.resetTreeView();
         guiSideBar.resetSidebar();
         this.setProjectStatus("noedit");
-        mindmapMenu.newMap(project);
+        mindmapMenu.newMap(project, "Root");
     };
     return Project;
 }());
@@ -1693,7 +1700,7 @@ function programCaller(data) {
             contextMenu.actionCancel();
             break;
         case "newMindmap":
-            mindmapMenu.newMap(project);
+            mindmapMenu.newMap(project, "Root");
             break;
         case "openExisting":
             mindmapMenu.selectFile();
