@@ -135,7 +135,6 @@ var Nodes = (function () {
     Nodes.prototype.findNodeByAttribute = function (attr, val) {
         var All = document.getElementsByTagName('jmnode');
         for (var i = 0; i < All.length; i++) {
-            console.log(All[i].getAttribute(attr));
             if (All[i].getAttribute(attr) == val) {
                 return All[i];
             }
@@ -850,7 +849,6 @@ var MindmapMenu = (function () {
         var mindMapChooser = document.getElementById('mindmap-chooser');
         mindMapChooser.addEventListener('change', function (event) {
             var files = mindMapChooser.files;
-            console.log(files);
             if (files.length <= 0) {
                 alert('please choose a file first');
             }
@@ -966,7 +964,6 @@ var Gui = (function () {
                         self.setPdfButton(node.getId(), node.getFileName(), node.getPageNumber().toString(), node);
                         var tempElement = node.findNodeByAttribute("nodeid", node.getId());
                         if ((tempElement != null) || (tempElement != undefined)) {
-                            console.log(tempElement);
                             tempElement.setAttribute("pdfid", node.getFileName());
                         }
                     }
@@ -1138,7 +1135,7 @@ var GuiSideBar = (function (_super) {
                 var value = listAnnotation[0].children[i].innerHTML;
                 if (value.toLowerCase().includes(keyword.toLowerCase()) == true) {
                     temp.push({
-                        filename: listAnnotation[0].children[i].title,
+                        filename: listAnnotation[0].children[i].getAttribute("filename"),
                         id: listAnnotation[0].children[i].id,
                         topic: value,
                         subtype: "",
@@ -1211,6 +1208,7 @@ var GuiSideBar = (function (_super) {
         var htmlContent = document.createElement("li");
         htmlContent.setAttribute("id", node.getId());
         htmlContent.setAttribute("pagenumber", node.getPageNumber());
+        htmlContent.setAttribute("filename", node.getFileName());
         htmlContent.value = node.getPageNumber();
         htmlContent.innerHTML = node.getTopic();
         htmlContent.title = directory + "\\" + node.getFileName();
@@ -1526,6 +1524,7 @@ var Project = (function () {
                 }
                 self.openProject(data, self);
             });
+            $("#file-chooser").val("");
         });
     };
     /**

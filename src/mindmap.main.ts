@@ -159,7 +159,6 @@ class Nodes {
         var All:any = document.getElementsByTagName('jmnode');
 
         for (var i = 0; i < All.length; i++) {
-            console.log(All[i].getAttribute(attr));
             if (All[i].getAttribute(attr) == val) { return All[i]; }
         }
 
@@ -981,7 +980,6 @@ class MindmapMenu {
         
         mindMapChooser.addEventListener('change', function (event) {
             var files:FileList = mindMapChooser.files;
-            console.log(files);
             if (files.length <= 0) {
                 alert('please choose a file first')
             }
@@ -1104,7 +1102,6 @@ class Gui {
                         self.setPdfButton(node.getId(), node.getFileName(), node.getPageNumber().toString(), node);
                         var tempElement = node.findNodeByAttribute("nodeid", node.getId());
                         if((tempElement != null) || (tempElement != undefined)) {
-                            console.log(tempElement);
                             tempElement.setAttribute("pdfid", node.getFileName());
                         }
                     }
@@ -1296,7 +1293,7 @@ class GuiSideBar extends Gui {
                 var value = listAnnotation[0].children[i].innerHTML;
                 if(value.toLowerCase().includes(keyword.toLowerCase()) == true ) {
                     temp.push({
-                        filename: listAnnotation[0].children[i].title,
+                        filename: listAnnotation[0].children[i].getAttribute("filename"),
                         id: listAnnotation[0].children[i].id,
                         topic: value,
                         subtype: "",
@@ -1374,6 +1371,7 @@ class GuiSideBar extends Gui {
         var htmlContent = document.createElement("li");
         htmlContent.setAttribute("id", node.getId());
         htmlContent.setAttribute("pagenumber", node.getPageNumber());
+        htmlContent.setAttribute("filename", node.getFileName());
         htmlContent.value = node.getPageNumber();
         htmlContent.innerHTML = node.getTopic();
         htmlContent.title = directory + "\\" +node.getFileName();
@@ -1731,6 +1729,7 @@ class Project {
                 }
                 self.openProject(data, self);
             });
+            $("#file-chooser").val("");
         });
     }
 
