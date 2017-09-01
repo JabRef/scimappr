@@ -1545,11 +1545,11 @@ class Project {
         var self:any = this;
         var pathName:string = "";
         var dirProcess:any = null;
-        var listFiles:string = "";
 
         var promise = new Promise(function(resolve, reject){
             $("#pdf-chooser").on("change", function(result){  
                 var lastResult:any[] = new Array;
+                var listFiles:string = "";
                 pathName = result.target.files[0].path;
                 listPdf.setDirectory(pathName);
                 dirProcess = listPdf.getPdfFromFs();
@@ -1572,6 +1572,7 @@ class Project {
                     lastResult.push(arrayList);
                     resolve(lastResult);
                 });
+                $("#pdf-chooser").val("");
             });
     
             });    

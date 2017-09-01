@@ -1360,10 +1360,10 @@ var Project = (function () {
         var self = this;
         var pathName = "";
         var dirProcess = null;
-        var listFiles = "";
         var promise = new Promise(function (resolve, reject) {
             $("#pdf-chooser").on("change", function (result) {
                 var lastResult = new Array;
+                var listFiles = "";
                 pathName = result.target.files[0].path;
                 listPdf.setDirectory(pathName);
                 dirProcess = listPdf.getPdfFromFs();
@@ -1384,6 +1384,7 @@ var Project = (function () {
                     lastResult.push(arrayList);
                     resolve(lastResult);
                 });
+                $("#pdf-chooser").val("");
             });
         });
         Promise.all([promise]).then(function (result) {
