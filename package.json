@@ -4,14 +4,19 @@
   "description": "application for mindmap in internet",
   "main": "init.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-packager . --overwrite --platform=win32 --electron-version=1.6.8 --out=release-builds --version-string.CompanyName=CE --version-string.FileDescription=CE --version-string.ProductName=\"Mindmap\""
   },
   "author": "M Dandy Firmansyah",
   "license": "ISC",
   "devDependencies": {
-    "electron-prebuilt": "^1.4.13"
+    "electron-prebuilt": "^1.4.13",
+    "electron-packager": "~9.1.0"
   },
   "dependencies": {
-    "bootstrap": "^3.3.7"
+    "bootstrap": "^3.3.7",
+    "bootstrap-treeview": "1.2.0",
+    "jquery": "3.2.1",
+    "jqueryui": "1.11.1"
   }
 }

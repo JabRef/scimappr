@@ -7,8 +7,6 @@
     <!-- Requirements for JsMind, JQuery, Bootstrap, JsTree -->
 	<!--<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script> -->
 	<!--<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script> -->
-    <script type="text/javascript" src="./node_modules/jquery/dist/jquery.min.js" onload="window.$ = window.jQuery = module.exports;"></script>
-    <script type="text/javascript" src="./node_modules/jqueryui/jquery-ui.min.js"></script>
 
   <link type="text/css" rel="stylesheet" href='./build/assets/jsmind.css'/>
   
@@ -174,6 +172,8 @@
 
 
     <input style="display:none" type="file" id="mindmap-chooser" accept=".jm,.mm" />
+    <script type="text/javascript">window.$ = window.jQuery = require('./node_modules/jquery/dist/jquery.min.js');</script>
+    <script type="text/javascript" src="./node_modules/jqueryui/jquery-ui.min.js"></script>
 
 	<!-- Latest compiled and minified JavaScript -->
 	<!--<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script> -->

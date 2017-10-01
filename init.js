@@ -13,7 +13,8 @@ function createWindow() {
 		width:1920,
 		height:1080,
 		webPreferences: {
-			devTools: true
+			devTools: true,
+			'node-integration': false
 		}
 	})
 
