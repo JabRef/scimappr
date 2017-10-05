@@ -143,9 +143,36 @@ var Nodes = (function () {
     return Nodes;
 }());
 /**
+ * Pdf file details in folder
+ */
+var Pdf = (function () {
+    function Pdf() {
+    }
+    Pdf.prototype.setPdfName = function (input) {
+        this.pdfName = input;
+    };
+    Pdf.prototype.getPdfName = function () {
+        return this.pdfName;
+    };
+    Pdf.prototype.setPdfLocation = function (input) {
+        this.pdfLocation = input;
+    };
+    Pdf.prototype.getPdfLocation = function () {
+        return this.getPdfLocation;
+    };
+    Pdf.prototype.setPdfModifiedDate = function (input) {
+        this.pdfLastModifiedDate = input;
+    };
+    Pdf.prototype.getPdfModifiedDate = function () {
+        return this.getPdfModifiedDate;
+    };
+    return Pdf;
+}());
+/**
  * List of PDF files in a folder
  */
-var ListPdf = (function () {
+var ListPdf = (function (_super) {
+    __extends(ListPdf, _super);
     /**
      *
      * @param listPdfFiles
@@ -153,9 +180,11 @@ var ListPdf = (function () {
      * @param directory
      */
     function ListPdf(listPdfFiles, lastModDatePdfFiles, directory) {
-        this.listPdfFiles = listPdfFiles;
-        this.directory = directory;
-        this.lastModDatePdfFiles = lastModDatePdfFiles;
+        var _this = _super.call(this) || this;
+        _this.listPdfFiles = listPdfFiles;
+        _this.directory = directory;
+        _this.lastModDatePdfFiles = lastModDatePdfFiles;
+        return _this;
     }
     /**
      * save list of pdf files' name with input of pdf file lists
@@ -203,28 +232,6 @@ var ListPdf = (function () {
             modDateList.push(util.getLastModFs(location, listFile[x]));
         }
         return modDateList;
-    };
-    /**
-     * extract the all last modifyed date information from the pdf file list
-     * @param util
-     * @param listFile
-     * @returns {Array}
-     */
-    ListPdf.prototype.getModDate = function (util, listFile) {
-        var counter = 0;
-        var modDateList = [];
-        for (var x = 0; x < listFile.length; x++) {
-            modDateList.push(util.getLastMod(listFile[x]));
-        }
-        return modDateList;
-    };
-    /**
-     *getting the just one last modifyed date information with respect to the index input
-     * @param idx
-     * @returns {string}
-     */
-    ListPdf.prototype.getLastModDate = function (idx) {
-        return this.lastModDatePdfFiles[idx];
     };
     /**
      * get all last modified date from last modified date list
@@ -374,7 +381,7 @@ var ListPdf = (function () {
         return processPage;
     };
     return ListPdf;
-}());
+}(Pdf));
 /**
  *Details of annotation
  */
@@ -491,7 +498,7 @@ var ListAnnotations = (function (_super) {
      * @param input
      */
     function ListAnnotations(input) {
-        var _this = _super.call(this, new Array, new Array, input) || this;
+        var _this = _super.call(this, "", "", "", "", "", 0) || this;
         _this.listPdfFilesAnnotations = new Array;
         return _this;
     }
@@ -554,7 +561,7 @@ var ListAnnotations = (function (_super) {
         return processAnot;
     };
     return ListAnnotations;
-}(ListPdf));
+}(Annotation));
 /**
  * Utilities that are used to support the main program
  */
@@ -738,167 +745,6 @@ var Utils = (function () {
     return Utils;
 }());
 /**
- * Used when doing right click (to select some menus)
- */
-var ContextMenu = (function () {
-    function ContextMenu() {
-    }
-    ContextMenu.prototype.setListData = function (input) {
-        this.listData = new Array;
-        for (var i = 0; i < input.length; i++) {
-            this.listData[i] = input[i];
-        }
-    };
-    ContextMenu.prototype.getListData = function () {
-        return this.listData;
-    };
-    ContextMenu.prototype.setTempBoard = function (input) {
-        this.tempBoard = input;
-    };
-    ContextMenu.prototype.setClipBoard = function () {
-        this.clipBoard = this.tempBoard;
-    };
-    ContextMenu.prototype.getClipBoard = function () {
-        return this.clipBoard;
-    };
-    ContextMenu.prototype.actionCopy = function () {
-        this.setClipBoard();
-        $('#contextMenu').hide();
-    };
-    ContextMenu.prototype.actionPaste = function (project) {
-        var selected_node = _jm.get_selected_node(); // select node when mouseover
-        var topic = this.getClipBoard();
-        _jm.add_node(selected_node, Date.now(), topic, '', '');
-        project.setProjectStatus('edited');
-        $('#contextMenu').hide();
-    };
-    ContextMenu.prototype.actionOpenPdf = function (directory) {
-        var selected_node = _jm.get_selected_node(); // select node when mouseover
-        var pdfViewer = "./build/pdf.js/web/viewer.html";
-        var fileName = "?file=" + selected_node.pdfid;
-        var page = "#page=" + selected_node.index;
-        window.open(pdfViewer + fileName + page, "_blank", "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
-        $('#contextMenu').hide();
-    };
-    ContextMenu.prototype.actionOpenPdfUserDefine = function (directory) {
-        var selected_node = _jm.get_selected_node();
-        var shell = require('electron').shell;
-        var fileName = selected_node.pdfid;
-        shell.openItem(fileName);
-        $('#contextMenu').hide();
-    };
-    ContextMenu.prototype.actionCancel = function () {
-        $('#contextMenu').hide();
-    };
-    return ContextMenu;
-}());
-/**
- * All Operations related to the Menu GUI
- */
-var MindmapMenu = (function () {
-    function MindmapMenu(jsMindObject) {
-        this.jsMindObject = jsMindObject;
-    }
-    MindmapMenu.prototype.setFileTypeSave = function (input) {
-        this.fileTypeSave = input;
-    };
-    MindmapMenu.prototype.getFileTypeSave = function () {
-        return this.fileTypeSave;
-    };
-    MindmapMenu.prototype.newMap = function (project, rootName) {
-        var mindmap = {
-            "meta": {
-                "name": "jsMind",
-                "version": "0.2"
-            },
-            "format": "node_tree",
-            "data": { "id": "root", "topic": rootName, "children": [] }
-        };
-        this.jsMindObject.show(mindmap);
-        document.querySelector('#mindmap-chooser').value = ''; // Reset the file selector
-        if ((project != null) || (project != undefined)) {
-            project.setProjectStatus('edited');
-        }
-    };
-    MindmapMenu.prototype.saveFile = function (fileType) {
-        var mind_data;
-        var mind_object = this.getJsMindData();
-        this.setFileTypeSave(fileType);
-        if (fileType === 'jm') {
-            mind_data = mind_object.get_data();
-        }
-        else {
-            mind_data = mind_object.get_data('freemind');
-        }
-        var mind_str = (fileType === 'jm') ? jsMind.util.json.json2string(mind_data) : mind_data.data;
-        util.writeAnyTypeFile(project.getProjectLocation(), mind_str, project.getProjectName(), fileType);
-        project.setProjectSavedFileLocation(project.getProjectLocation() + "\\" + project.getProjectName() + "." + fileType);
-        project.setSaveProject();
-    };
-    MindmapMenu.prototype.getJsMindData = function () {
-        var mindmapData;
-        mindmapData = this.jsMindObject;
-        return mindmapData;
-    };
-    MindmapMenu.prototype.selectFile = function () {
-        var file_input = document.getElementById('mindmap-chooser');
-        file_input.click();
-    };
-    MindmapMenu.prototype.setOpenFileListener = function () {
-        var self = this;
-        var mindMapChooser = document.getElementById('mindmap-chooser');
-        mindMapChooser.addEventListener('change', function (event) {
-            var files = mindMapChooser.files;
-            if (files.length <= 0) {
-                alert('please choose a file first');
-            }
-            var file_data = files[0];
-            if (/.*\.mm$/.test(file_data.name)) {
-                jsMind.util.file.read(file_data, function (freemind_data, freemind_name) {
-                    self.loadFileJsMind(freemind_data, "mm", freemind_name);
-                });
-            }
-            else {
-                jsMind.util.file.read(file_data, function (jsmind_data, jsmind_name) {
-                    self.loadFileJsMind(jsmind_data, "jm", jsmind_name);
-                });
-            }
-        });
-    };
-    MindmapMenu.prototype.loadFileJsMind = function (content, type, freemind_name) {
-        if (type == "mm") {
-            var freemind_data = content;
-            if (freemind_data) {
-                var mind_name = freemind_name.substring(0, freemind_name.length - 3);
-                var mind = {
-                    "meta": {
-                        "name": mind_name,
-                        "version": "1.0.1"
-                    },
-                    "format": "freemind",
-                    "data": freemind_data
-                };
-                _jm.show(mind);
-            }
-            else {
-                alert('The selected file is not supported');
-            }
-        }
-        else {
-            var jsmind_data = content;
-            mind = jsMind.util.json.string2json(jsmind_data);
-            if (!!mind) {
-                _jm.show(mind);
-            }
-            else {
-                alert('The selected file is not supported');
-            }
-        }
-        return mind;
-    };
-    return MindmapMenu;
-}());
-/**
  * for GUI operations in general (except the gui sidebar)
  */
 var Gui = (function () {
@@ -1064,6 +910,172 @@ var Gui = (function () {
     };
     return Gui;
 }());
+/**
+ * Used when doing right click (to select some menus)
+ */
+var ContextMenu = (function (_super) {
+    __extends(ContextMenu, _super);
+    function ContextMenu() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    ContextMenu.prototype.setListData = function (input) {
+        this.listData = new Array;
+        for (var i = 0; i < input.length; i++) {
+            this.listData[i] = input[i];
+        }
+    };
+    ContextMenu.prototype.getListData = function () {
+        return this.listData;
+    };
+    ContextMenu.prototype.setTempBoard = function (input) {
+        this.tempBoard = input;
+    };
+    ContextMenu.prototype.setClipBoard = function () {
+        this.clipBoard = this.tempBoard;
+    };
+    ContextMenu.prototype.getClipBoard = function () {
+        return this.clipBoard;
+    };
+    ContextMenu.prototype.actionCopy = function () {
+        this.setClipBoard();
+        $('#contextMenu').hide();
+    };
+    ContextMenu.prototype.actionPaste = function (project) {
+        var selected_node = _jm.get_selected_node(); // select node when mouseover
+        var topic = this.getClipBoard();
+        _jm.add_node(selected_node, Date.now(), topic, '', '');
+        project.setProjectStatus('edited');
+        $('#contextMenu').hide();
+    };
+    ContextMenu.prototype.actionOpenPdf = function (directory) {
+        var selected_node = _jm.get_selected_node(); // select node when mouseover
+        var pdfViewer = "./build/pdf.js/web/viewer.html";
+        var fileName = "?file=" + selected_node.pdfid;
+        var page = "#page=" + selected_node.index;
+        window.open(pdfViewer + fileName + page, "_blank", "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
+        $('#contextMenu').hide();
+    };
+    ContextMenu.prototype.actionOpenPdfUserDefine = function (directory) {
+        var selected_node = _jm.get_selected_node();
+        var shell = require('electron').shell;
+        var fileName = selected_node.pdfid;
+        shell.openItem(fileName);
+        $('#contextMenu').hide();
+    };
+    ContextMenu.prototype.actionCancel = function () {
+        $('#contextMenu').hide();
+    };
+    return ContextMenu;
+}(Gui));
+/**
+ * All Operations related to the Menu GUI
+ */
+var MindmapMenu = (function (_super) {
+    __extends(MindmapMenu, _super);
+    function MindmapMenu(jsMindObject) {
+        var _this = _super.call(this) || this;
+        _this.jsMindObject = jsMindObject;
+        return _this;
+    }
+    MindmapMenu.prototype.setFileTypeSave = function (input) {
+        this.fileTypeSave = input;
+    };
+    MindmapMenu.prototype.getFileTypeSave = function () {
+        return this.fileTypeSave;
+    };
+    MindmapMenu.prototype.newMap = function (project, rootName) {
+        var mindmap = {
+            "meta": {
+                "name": "jsMind",
+                "version": "0.2"
+            },
+            "format": "node_tree",
+            "data": { "id": "root", "topic": rootName, "children": [] }
+        };
+        this.jsMindObject.show(mindmap);
+        document.querySelector('#mindmap-chooser').value = ''; // Reset the file selector
+        if ((project != null) || (project != undefined)) {
+            project.setProjectStatus('edited');
+        }
+    };
+    MindmapMenu.prototype.saveFile = function (fileType) {
+        var mind_data;
+        var mind_object = this.getJsMindData();
+        this.setFileTypeSave(fileType);
+        if (fileType === 'jm') {
+            mind_data = mind_object.get_data();
+        }
+        else {
+            mind_data = mind_object.get_data('freemind');
+        }
+        var mind_str = (fileType === 'jm') ? jsMind.util.json.json2string(mind_data) : mind_data.data;
+        util.writeAnyTypeFile(project.getProjectLocation(), mind_str, project.getProjectName(), fileType);
+        project.setProjectSavedFileLocation(project.getProjectLocation() + "\\" + project.getProjectName() + "." + fileType);
+        project.setSaveProject();
+    };
+    MindmapMenu.prototype.getJsMindData = function () {
+        var mindmapData;
+        mindmapData = this.jsMindObject;
+        return mindmapData;
+    };
+    MindmapMenu.prototype.selectFile = function () {
+        var file_input = document.getElementById('mindmap-chooser');
+        file_input.click();
+    };
+    MindmapMenu.prototype.setOpenFileListener = function () {
+        var self = this;
+        var mindMapChooser = document.getElementById('mindmap-chooser');
+        mindMapChooser.addEventListener('change', function (event) {
+            var files = mindMapChooser.files;
+            if (files.length <= 0) {
+                alert('please choose a file first');
+            }
+            var file_data = files[0];
+            if (/.*\.mm$/.test(file_data.name)) {
+                jsMind.util.file.read(file_data, function (freemind_data, freemind_name) {
+                    self.loadFileJsMind(freemind_data, "mm", freemind_name);
+                });
+            }
+            else {
+                jsMind.util.file.read(file_data, function (jsmind_data, jsmind_name) {
+                    self.loadFileJsMind(jsmind_data, "jm", jsmind_name);
+                });
+            }
+        });
+    };
+    MindmapMenu.prototype.loadFileJsMind = function (content, type, freemind_name) {
+        if (type == "mm") {
+            var freemind_data = content;
+            if (freemind_data) {
+                var mind_name = freemind_name.substring(0, freemind_name.length - 3);
+                var mind = {
+                    "meta": {
+                        "name": mind_name,
+                        "version": "1.0.1"
+                    },
+                    "format": "freemind",
+                    "data": freemind_data
+                };
+                _jm.show(mind);
+            }
+            else {
+                alert('The selected file is not supported');
+            }
+        }
+        else {
+            var jsmind_data = content;
+            mind = jsMind.util.json.string2json(jsmind_data);
+            if (!!mind) {
+                _jm.show(mind);
+            }
+            else {
+                alert('The selected file is not supported');
+            }
+        }
+        return mind;
+    };
+    return MindmapMenu;
+}(Gui));
 /**
  * For the creation of the side bar GUI
  */

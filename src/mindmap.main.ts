@@ -167,9 +167,42 @@ class Nodes {
 }
 
 /**
+ * Pdf file details in folder
+ */
+class Pdf {
+    private pdfName: string;
+    private pdfLocation:string;
+    private pdfLastModifiedDate: string;
+
+    public setPdfName(input:string) {
+        this.pdfName = input;
+    }
+
+    public getPdfName() {
+        return this.pdfName;
+    }
+
+    public setPdfLocation(input:string) {
+        this.pdfLocation = input;
+    }
+
+    public getPdfLocation() {
+        return this.getPdfLocation;
+    }
+
+    public setPdfModifiedDate(input:string) {
+        this.pdfLastModifiedDate = input;
+    }   
+
+    public getPdfModifiedDate() {
+        return this.getPdfModifiedDate;
+    }
+}
+
+/**
  * List of PDF files in a folder
  */
-class ListPdf {
+class ListPdf extends Pdf {
     /**
      *  Saves PDF Files' Name, Last Modification and Folder Directory
      */
@@ -184,6 +217,7 @@ class ListPdf {
      * @param directory
      */
     constructor(listPdfFiles:string[], lastModDatePdfFiles:string[], directory:string) {
+        super();
         this.listPdfFiles = listPdfFiles;
         this.directory = directory;
         this.lastModDatePdfFiles = lastModDatePdfFiles;
@@ -240,30 +274,6 @@ class ListPdf {
             modDateList.push(util.getLastModFs(location, listFile[x]));
         }
         return modDateList;
-    }
-
-    /**
-     * extract the all last modifyed date information from the pdf file list
-     * @param util
-     * @param listFile
-     * @returns {Array}
-     */
-    public getModDate(util, listFile:string[]) {
-        var counter:number = 0;
-        var modDateList = [];
-        for (var x = 0; x < listFile.length; x++) {
-            modDateList.push(util.getLastMod(listFile[x]));
-        }
-        return modDateList;
-    }
-
-    /**
-     *getting the just one last modifyed date information with respect to the index input
-     * @param idx
-     * @returns {string}
-     */
-    public getLastModDate(idx:number):string {
-        return this.lastModDatePdfFiles[idx];
     }
 
     /**
@@ -562,7 +572,7 @@ ss
 /**
  * Used to manipulate list of annotations
  */
-class ListAnnotations extends ListPdf {
+class ListAnnotations extends Annotation {
 
     private listPdfFilesAnnotations:string[];
 
@@ -571,7 +581,7 @@ class ListAnnotations extends ListPdf {
      * @param input
      */
     constructor(input:string) {
-        super(new Array, new Array, input);
+        super("", "", "", "", "", 0);
         this.listPdfFilesAnnotations = new Array;
     }
 
@@ -843,10 +853,193 @@ class Utils {
     }
 
 }
+
+/**
+ * for GUI operations in general (except the gui sidebar)
+ */
+class Gui {
+    
+        /**
+         * Setting GUI when Initializing the program
+         * @param mindmapMenu 
+         */
+        public setGuiInitialize(mindmapMenu:any):any {
+                //to set nodes as draggable and droppable
+                $(".drag").draggable(node.setDraggable());
+                $(".drop").droppable(node.setDroppable());
+    
+                // Render existing MindMap
+                var options = {
+                    container:'jsmind_container',
+                    theme:'primary',
+                    editable:true
+                }
+                var mindmap = {
+                    "meta":{
+                        "name":"jsMind",
+                        "version":"0.2"
+                    },
+                    "format":"node_tree",
+                    "data":{"id":"root","topic":"Root","children": [] }
+                };
+    
+                _jm = jsMind.show(options, mindmap);
+                mindmapMenu = new MindmapMenu(_jm);
+                mindmapMenu.setOpenFileListener();
+    
+                return mindmapMenu;
+        }
+    
+        /**
+         * used for creating confirmation window
+         * @param msg 
+         */
+        public windowConfirmation(msg:string):boolean {
+            var result:boolean = confirm(msg);
+            return result;
+        }
+    
+        /**
+         * used for creating alert window
+         * @param msg 
+         */
+        public windowAlert(msg:string) {
+            alert(msg);
+        }
+    
+        public loadPdfButton(contents:any) {
+            var self = this;
+            
+            jmnodes = document.querySelectorAll('jmnodes');
+            var nodes = jmnodes[0].children;
+            var node = null;
+            var content = contents[0];
+            var counter:number = 0
+            
+            for(var i = 0; i < nodes.length; i++) {
+                if(nodes[i].nodeName == "JMNODE") {
+                    var tempContent = content.annotation[counter];
+                    var realContent = tempContent[0];
+                    counter++;
+                    if(realContent.id == nodes[i].attributes[0].value) {
+                        if(realContent.id != "root") {
+                            node = new Nodes(realContent.id, realContent.text, realContent.file, realContent.page);
+                            self.setPdfButton(node.getId(), node.getFileName(), node.getPageNumber().toString(), node);
+                            var tempElement = node.findNodeByAttribute("nodeid", node.getId());
+                            if((tempElement != null) || (tempElement != undefined)) {
+                                tempElement.setAttribute("pdfid", node.getFileName());
+                            }
+                        }
+                    } else {
+                        counter--;
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 
+         * @param nodeid 
+         * @param pdfid 
+         * @param pagenumber 
+         * @param node 
+         */
+        public setPdfButton(nodeid:string, pdfid:string, pagenumber:string, node:any) {
+            if((pdfid != "undefine") || (pdfid != null)) {
+    
+                    var pdfViewer:string = "./build/pdf.js/web/viewer.html";
+                    //var fileName:string = "?File=" + "./" + pdfid;
+                    var fileName:string = "?file=" + pdfid;
+                    var pageNumber:string =  "#page=" + pagenumber.toString();
+                    var link:string = pdfViewer + fileName + pageNumber;
+    
+                    var linkElement:any = document.createElement("a")
+                    linkElement.setAttribute("href", link);
+                    linkElement.setAttribute("target", "_blank");
+                    linkElement.setAttribute("style", "z-index:5; float:left; padding-right:5px");
+    
+                    var imgElement:any = document.createElement("img");
+                    imgElement.setAttribute("id", nodeid);
+                    imgElement.setAttribute("src", "./build/img/pdf.png");
+    
+                    linkElement.appendChild(imgElement);
+                    var selection = node.findNodeByAttribute("nodeid", nodeid);
+                    selection.appendChild(linkElement);
+                }
+        }
+    
+        /**
+         * used for creating new project window
+         */
+        public windowNewProject() {        
+            $("#myModal").modal();
+            (<HTMLInputElement> document.getElementById("projectName")).value = "MyThesis";
+            (<HTMLInputElement> document.getElementById("projectPdf")).value = "";
+        }
+    
+        /**
+         * used for opening existing project window
+         */
+        public windowOpenProject() {
+            var input = $(document.getElementById('file-chooser'));
+            input.trigger("click"); // opening dialog
+        }
+    
+        /**
+         *Listener of the jsmind. It will update the main jsmind tree in any changes
+         */
+        public setJsmindListener() {
+            var self = this;
+            // Update the annotation panel on each MindMap event
+            _jm.add_event_listener(function () {
+                self.setContextMenu();
+                var nodes = $('#annotation-group').get();
+                var children = nodes[0].children;
+                for(var i = 0; i < children.length; i++) {
+                    node = children[i];
+                    if (_jm.mind.nodes[node.id]) {
+                        $('#'+node.id).hide();
+                    } else {
+                        $('#'+node.id).show();
+                    }
+                }
+                
+            });
+        }
+    
+        public setContextMenu() {
+            jmnodes = document.querySelectorAll('jmnode');
+                for(var i = 0; i < jmnodes.length; i++) {
+                     // Not efficient, need to figure out another way to do this.
+                     jmnodes[i].oncontextmenu = function (e) {
+                         e.preventDefault();
+                         if (e.target.getAttribute('pdfid') != 'undefined') {
+                             $('#contextMenu .actionOpenPdf').show();
+                         } else {
+                             $('#contextMenu .actionOpenPdf').hide();
+                         }
+                         $('#contextMenu').show();
+                         $('#contextMenu').css({ position: 'absolute', marginLeft: e.clientX, marginTop: e.clientY-45 });
+                         contextMenu.setTempBoard(e.target.innerHTML);
+                     }
+                 }
+        } 
+    
+         /**
+         * Used for creating shaking effect into modal
+         * @param id 
+         */
+        public setEffectShaking(id:string) {
+            var element:any = document.getElementById(id);
+            $(element).effect("shake");
+        }
+    
+    }    
+
 /**
  * Used when doing right click (to select some menus)
  */
-class ContextMenu {
+class ContextMenu extends Gui {
 
     private listData: string[];
     private tempBoard: string;
@@ -914,11 +1107,12 @@ class ContextMenu {
 /**
  * All Operations related to the Menu GUI
  */
-class MindmapMenu {
+class MindmapMenu extends Gui {
     private jsMindObject: any;
     private fileTypeSave:string;
 
     constructor(jsMindObject) {
+        super();
         this.jsMindObject = jsMindObject;
     }
 
@@ -1027,188 +1221,6 @@ class MindmapMenu {
 
         return mind;
     }
-}
-
-/**
- * for GUI operations in general (except the gui sidebar)
- */
-class Gui {
-
-    /**
-     * Setting GUI when Initializing the program
-     * @param mindmapMenu 
-     */
-    public setGuiInitialize(mindmapMenu:any):any {
-            //to set nodes as draggable and droppable
-            $(".drag").draggable(node.setDraggable());
-            $(".drop").droppable(node.setDroppable());
-
-            // Render existing MindMap
-            var options = {
-                container:'jsmind_container',
-                theme:'primary',
-                editable:true
-            }
-            var mindmap = {
-                "meta":{
-                    "name":"jsMind",
-                    "version":"0.2"
-                },
-                "format":"node_tree",
-                "data":{"id":"root","topic":"Root","children": [] }
-            };
-
-            _jm = jsMind.show(options, mindmap);
-            mindmapMenu = new MindmapMenu(_jm);
-            mindmapMenu.setOpenFileListener();
-
-            return mindmapMenu;
-    }
-
-    /**
-     * used for creating confirmation window
-     * @param msg 
-     */
-    public windowConfirmation(msg:string):boolean {
-        var result:boolean = confirm(msg);
-        return result;
-    }
-
-    /**
-     * used for creating alert window
-     * @param msg 
-     */
-    public windowAlert(msg:string) {
-        alert(msg);
-    }
-
-    public loadPdfButton(contents:any) {
-        var self = this;
-        
-        jmnodes = document.querySelectorAll('jmnodes');
-        var nodes = jmnodes[0].children;
-        var node = null;
-        var content = contents[0];
-        var counter:number = 0
-        
-        for(var i = 0; i < nodes.length; i++) {
-            if(nodes[i].nodeName == "JMNODE") {
-                var tempContent = content.annotation[counter];
-                var realContent = tempContent[0];
-                counter++;
-                if(realContent.id == nodes[i].attributes[0].value) {
-                    if(realContent.id != "root") {
-                        node = new Nodes(realContent.id, realContent.text, realContent.file, realContent.page);
-                        self.setPdfButton(node.getId(), node.getFileName(), node.getPageNumber().toString(), node);
-                        var tempElement = node.findNodeByAttribute("nodeid", node.getId());
-                        if((tempElement != null) || (tempElement != undefined)) {
-                            tempElement.setAttribute("pdfid", node.getFileName());
-                        }
-                    }
-                } else {
-                    counter--;
-                }
-            }
-        }
-    }
-
-    /**
-     * 
-     * @param nodeid 
-     * @param pdfid 
-     * @param pagenumber 
-     * @param node 
-     */
-    public setPdfButton(nodeid:string, pdfid:string, pagenumber:string, node:any) {
-        if((pdfid != "undefine") || (pdfid != null)) {
-
-                var pdfViewer:string = "./build/pdf.js/web/viewer.html";
-                //var fileName:string = "?File=" + "./" + pdfid;
-                var fileName:string = "?file=" + pdfid;
-                var pageNumber:string =  "#page=" + pagenumber.toString();
-                var link:string = pdfViewer + fileName + pageNumber;
-
-                var linkElement:any = document.createElement("a")
-                linkElement.setAttribute("href", link);
-                linkElement.setAttribute("target", "_blank");
-                linkElement.setAttribute("style", "z-index:5; float:left; padding-right:5px");
-
-                var imgElement:any = document.createElement("img");
-                imgElement.setAttribute("id", nodeid);
-                imgElement.setAttribute("src", "./build/img/pdf.png");
-
-                linkElement.appendChild(imgElement);
-                var selection = node.findNodeByAttribute("nodeid", nodeid);
-                selection.appendChild(linkElement);
-            }
-    }
-
-    /**
-     * used for creating new project window
-     */
-    public windowNewProject() {        
-        $("#myModal").modal();
-        (<HTMLInputElement> document.getElementById("projectName")).value = "MyThesis";
-        (<HTMLInputElement> document.getElementById("projectPdf")).value = "";
-    }
-
-    /**
-     * used for opening existing project window
-     */
-    public windowOpenProject() {
-        var input = $(document.getElementById('file-chooser'));
-        input.trigger("click"); // opening dialog
-    }
-
-    /**
-     *Listener of the jsmind. It will update the main jsmind tree in any changes
-     */
-    public setJsmindListener() {
-        var self = this;
-        // Update the annotation panel on each MindMap event
-        _jm.add_event_listener(function () {
-            self.setContextMenu();
-            var nodes = $('#annotation-group').get();
-            var children = nodes[0].children;
-            for(var i = 0; i < children.length; i++) {
-                node = children[i];
-                if (_jm.mind.nodes[node.id]) {
-                    $('#'+node.id).hide();
-                } else {
-                    $('#'+node.id).show();
-                }
-            }
-            
-        });
-    }
-
-    public setContextMenu() {
-        jmnodes = document.querySelectorAll('jmnode');
-            for(var i = 0; i < jmnodes.length; i++) {
-         		// Not efficient, need to figure out another way to do this.
-         		jmnodes[i].oncontextmenu = function (e) {
-         			e.preventDefault();
-         			if (e.target.getAttribute('pdfid') != 'undefined') {
-         			    $('#contextMenu .actionOpenPdf').show();
-         			} else {
-         			    $('#contextMenu .actionOpenPdf').hide();
-         			}
-         			$('#contextMenu').show();
-         			$('#contextMenu').css({ position: 'absolute', marginLeft: e.clientX, marginTop: e.clientY-45 });
-         			contextMenu.setTempBoard(e.target.innerHTML);
-         		}
-         	}
-    } 
-
-     /**
-     * Used for creating shaking effect into modal
-     * @param id 
-     */
-    public setEffectShaking(id:string) {
-        var element:any = document.getElementById(id);
-        $(element).effect("shake");
-    }
-
 }
 
 /**
