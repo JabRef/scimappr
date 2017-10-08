@@ -37,6 +37,10 @@
                     <!--<li><a data-toggle="modal" href="#myModal" data-target="#myModal">New Project</a></li> -->
                     <li><a href="javascript:programCaller('newProjectModal')"><span class="glyphicon glyphicon-file"></span>&nbsp;New Project</a></li>
                     <li><a href="javascript:programCaller('openProjectModal')"><span class="glyphicon glyphicon-folder-open"></span>&nbsp;&nbsp;Open Project</a></li>
+                    <li class="dropdown-submenu">
+                        <a tabindex="-1" href="#"><span class="glyphicon glyphicon-level-up"></span>&nbsp;&nbsp;Recent Projects</a>
+                        <ul id="recentProjectsList" class="dropdown-menu"></ul>
+                    </li>
                     <li><a href="javascript:programCaller('saveProject')"><span class="glyphicon glyphicon-floppy-save"></span>&nbsp;Save Project</a></li>
                     <li><a href="javascript:programCaller('closeProject')"><span class="glyphicon glyphicon-folder-close"></span>&nbsp;Close Project</a></li>
                 </ul>
