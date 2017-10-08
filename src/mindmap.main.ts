@@ -9,6 +9,7 @@ declare var _jm: {get_selected_node: Function, select_node: Function, show: Func
 declare var jsMind:any;
 declare var jmnodes:any;
 declare var Buffer:any;
+var fs = require("fs");
 
 // ========================================================= //
 // Class Section
@@ -1034,6 +1035,20 @@ class Gui {
             $(element).effect("shake");
         }
     
+        public loadRecentProjects() {
+            var data = [];
+            try {
+                data = JSON.parse(fs.readFileSync('./projects.json'));
+            } catch (e) {}
+            if (data.length == 0) {
+                $('#recentProjectsList').html('<li>&nbsp;&nbsp;<i>No Projects</i></li>');
+            } else {
+                var projectList:any = data.map(function(each) {
+                    return `<li><a href="javascript:programCaller('openRecentProject', '`+each.projectFilePath.split('\\').join('\\\\')+`')">&nbsp;&nbsp;${each.projectName} <i>(${each.projectFilePath})</i></a></li>`;
+                });
+                $('#recentProjectsList').html(projectList.join(''));
+            }
+        }
     }    
 
 /**
@@ -1680,6 +1695,8 @@ class Project {
         });
         var result:string = util.setJsonFile(itemResult);
         util.writeJsonFile(projectLoc, result, projectName);
+        this.addToRecentProjects(projectName, projectLoc+"\\"+projectName+".json");
+        gui.loadRecentProjects();
     }
 
     private setArrayAnnotation(childnode:any, nodes:any, i:any):any {
@@ -1717,7 +1734,7 @@ class Project {
             text: projectName,
             nodes: tempNodeName     
         });
-
+        
         var resultDir:string = util.setJsonFile(itemDirProject);
         util.appendJsonFile("./", resultDir, "root");
 
@@ -1727,6 +1744,43 @@ class Project {
         listPdf.setLastModDate(listPdf.getModDateFs(util, projectLoc, listFiles));
     }
 
+    /**
+     * The projects.json format looks like:
+     * {
+     *  projectName: 'name',
+     *  projectFilePath: '<directory>/project.json',
+     * } 
+     * @param projectName 
+     * @param projectFilePath 
+     */
+    public addToRecentProjects(projectName:string, projectFilePath:string) {
+        var data;
+        var files;
+        try {
+            data = fs.readFileSync('./projects.json');
+        } catch (e) {
+            fs.writeFileSync('./projects.json', '[]');
+            data = '[]';
+        }
+        var recentProjects = JSON.parse(data);
+        // Prevent duplicate entries
+        var alreadyExists = recentProjects.filter(function (e) { return e.projectFilePath == projectFilePath }).length > 0; 
+        if (alreadyExists) {
+            return;
+        }
+        recentProjects.push({ projectName, projectFilePath });
+        fs.writeFileSync('./projects.json', JSON.stringify(recentProjects));
+    }
+
+    public openRecentProject(projectFilePath:string) {
+        var self = this;
+        fs.readFile(projectFilePath, function (err, data) {
+            if (err) {
+                return console.error(err);
+            }
+            self.openProject(data, self);
+        });        
+    }
     /**
      * when open project is pressed
      */
@@ -1764,26 +1818,32 @@ class Project {
         self.setProjectPdfList(dataObject[0].project[0].files);
         self.setProjectSavedFileLocation(dataObject[0].project[0].savedfile);
         self.saveTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
-
+        
         listPdf.setDirectory(self.getProjectLocation());
 
         var htmlContent:any = (<HTMLInputElement> document.getElementById('mindmap-chooser'));
         var fileName:string = self.getProjectName();
-        var content = util.readAnyTypeFile(self.getProjectSavedFileLocation(), 'utf8');
+        
+        // if there is no mindmap, savedFileLocation will be undefined 
+        var content:string;
+        if (self.getProjectSavedFileLocation()) {
+            content = util.readAnyTypeFile(self.getProjectSavedFileLocation(), 'utf8');
+        }
 
         Promise.all([content]).then(function(result){
-            if(self.getProjectSavedFileLocation().indexOf(".mm") == -1) {
-                // if file is not .mm
-                var type:string = "jm";
-            } else {
-                //if file is .mm
-                type = "mm";
+            if (self.getProjectSavedFileLocation()) {                
+                if(self.getProjectSavedFileLocation().indexOf(".mm") == -1) {
+                    // if file is not .mm
+                    var type:string = "jm";
+                } else {
+                    //if file is .mm
+                    type = "mm";
+                }
+
+                mindmapMenu.loadFileJsMind(result, type, fileName+"."+type);
             }
-
-            mindmapMenu.loadFileJsMind(result, type, fileName+"."+type);
-
             gui.loadPdfButton(dataObject);
-
+            
             programCaller('refresh');
         });
     }
@@ -1869,7 +1929,7 @@ var project:any = null;
  * Main program, it is also called from the HTML file
  * @param data
  */
-function programCaller(data:any) {
+function programCaller(data:any, param:any = '') {
     
     switch(data) {
 
@@ -1893,6 +1953,8 @@ function programCaller(data:any) {
             // set Initialize for project
             project = new Project();
 
+            // Load recent projects list
+            gui.loadRecentProjects();
             break;
 
         /**
@@ -2021,6 +2083,8 @@ function programCaller(data:any) {
                 gui.windowAlert("project is saved in" + " " + msg);
             }
             break;
-
+        case "openRecentProject":
+            project.openRecentProject(param);
+            break;
 	}
 }
