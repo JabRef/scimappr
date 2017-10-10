@@ -522,7 +522,7 @@
                 if(node_parent.isroot){
                     d = node_json.direction == 'left'?jm.direction.left:jm.direction.right;
                 }
-                var node = mind.add_node(node_parent, node_json.id, node_json.topic, data, null, d, node_json.expanded);
+                var node = mind.add_node(node_parent, node_json.id, node_json.topic, data, null, node_json.index, d, node_json.expanded);
                 if('children' in node_json){
                     var children = node_json.children;
                     for(var i=0;i<children.length;i++){
@@ -639,7 +639,7 @@
                         if(!!node_direction){
                             d = node_direction == 'left'?jm.direction.left:jm.direction.right;
                         }
-                        mind.add_node(parentid, node_json.id, node_json.topic, data, null, d, node_json.expanded);
+                        mind.add_node(parentid, node_json.id, node_json.topic, data, null, node_json.index, d, node_json.expanded);
                         node_array.splice(i,1);
                         extract_count ++;
                         var sub_extract_count = df._extract_subnode(mind, node_json.id, node_array);
@@ -807,7 +807,7 @@
                 }
                 //logger.debug(node_position +':'+ node_direction);
                 if(!!parent_id){
-                    mind.add_node(parent_id, node_id, node_topic, node_data, null, node_direction, node_expanded);
+                    mind.add_node(parent_id, node_id, node_topic, node_data, null, null, node_direction, node_expanded);
                 }else{
                     mind.set_root(node_id, node_topic, node_data);
                 }
@@ -2353,6 +2353,7 @@
                     $t(d,node.topic);
                 }
             }
+            d.setAttribute('id', node.id);
             d.setAttribute('nodeid',node.id);
             d.setAttribute('pdfid', node.pdfid)
             d.style.visibility='hidden';
