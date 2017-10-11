@@ -247,14 +247,6 @@ var ListPdf = (function (_super) {
     ListPdf.prototype.getCount = function () {
         return this.listPdfFiles.length;
     };
-    /**
-     *subroutine for calling the get pdf private function
-     * @returns {any}
-     */
-    ListPdf.prototype.getPdf = function () {
-        var result = this.getPdfFiles(this.directory);
-        return result;
-    };
     ListPdf.prototype.getPdfFromFs = function () {
         var result = this.readPdfInDirectory(this.directory);
         return result;
@@ -326,31 +318,6 @@ var ListPdf = (function (_super) {
                     }
                 });
                 resolve(promises);
-            });
-        });
-        return process;
-    };
-    /**
-     * This is the promise to get file names from the given directory in server
-     * @param inputURL
-     * @returns {any}
-     */
-    ListPdf.prototype.getPdfFiles = function (inputURL) {
-        var process = new Promise(function (resolve, reject) {
-            var promises = [], promise;
-            var xhr = $.ajax({
-                //This will retrieve the contents of the folder if the folder is configured as 'browsable'
-                type: "GET",
-                url: inputURL,
-                success: function (data) {
-                    //List all pdfs file names in the page
-                    var counter = 0;
-                    $(data).find("a:contains(" + ".pdf" + ")").each(function (success) {
-                        promise = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/", "docs/");
-                        promises.push(promise);
-                    });
-                    resolve(promises);
-                }
             });
         });
         return process;
@@ -635,24 +602,6 @@ var Utils = (function () {
         var hash = hex_sha1("string");
         var hmac = hex_hmac_sha1("19", input);
         return hmac;
-    };
-    /**
-     * The real method in order to get the last modified date from the given URL
-     * @param url
-     * @returns {any}
-     */
-    Utils.prototype.getLastMod = function (url) {
-        var lastModifiedDate;
-        var xhr = $.ajax({
-            type: "GET",
-            cache: false,
-            async: false,
-            url: url,
-            success: function (data, status, res) {
-                lastModifiedDate = res.getResponseHeader("Last-Modified");
-            }
-        });
-        return lastModifiedDate;
     };
     /**
      * The real method in order to get the last modified date from the given URL (using fs)
@@ -1635,8 +1584,8 @@ var Project = (function () {
         this.setProjectName(document.getElementById("projectName").value);
         this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), "", "");
         this.setProjectStatus("edited");
-        guiSideBar.createTreeView(this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList());
         mindmapMenu.newMap(this, this.getProjectName());
+        guiSideBar.createTreeView(this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList());
         programCaller('refreshAll');
     };
     /**
@@ -1655,6 +1604,8 @@ var Project = (function () {
      * @param projectName
      * @param projectLoc
      * @param listFiles
+     * @param projectSavedFile
+     * @param projectSavedPdf
      */
     Project.prototype.saveProject = function (util, projectName, projectLoc, listFiles, projectSavedFile, projectSavedPdf) {
         var project = [];
@@ -1722,7 +1673,8 @@ var Project = (function () {
         return annotation;
     };
     /**
-     * to save temporary project for Multiple Project
+     *  to save temporary project for Multiple Project
+     * @param param
      */
     Project.prototype.setTempSaveProject = function (param) {
         switch (param) {
@@ -1784,6 +1736,7 @@ var Project = (function () {
                 return console.error(err);
             }
             self.openProject(data, self, null, null);
+            guiSideBar.createTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
         });
     };
     /**
@@ -1840,18 +1793,23 @@ var Project = (function () {
             // fetch data from .jm or .mm file
             var htmlContent = document.getElementById('mindmap-chooser');
             var fileName = self.getProjectName();
-            var content = util.readAnyTypeFile(self.getProjectSavedFileLocation(), 'utf8');
+            // if there is no mindmap, savedFileLocation will be undefined 
+            if (self.getProjectSavedFileLocation()) {
+                var content = util.readAnyTypeFile(self.getProjectSavedFileLocation(), 'utf8');
+            }
             Promise.all([content]).then(function (result) {
-                if (self.getProjectSavedFileLocation().indexOf(".mm") == -1) {
-                    // if file is not .mm
-                    var type = "jm";
+                if (self.getProjectSavedFileLocation()) {
+                    if (self.getProjectSavedFileLocation().indexOf(".mm") == -1) {
+                        // if file is not .mm
+                        var type = "jm";
+                    }
+                    else {
+                        //if file is .mm
+                        type = "mm";
+                    }
+                    mindmapMenu.loadFileJsMind(result, type, fileName + "." + type);
+                    gui.loadPdfButton(dataObject);
                 }
-                else {
-                    //if file is .mm
-                    type = "mm";
-                }
-                mindmapMenu.loadFileJsMind(result, type, fileName + "." + type);
-                gui.loadPdfButton(dataObject);
                 if (mode == "listener") {
                     self.setTempSaveProject("openProject");
                 }
@@ -1894,7 +1852,7 @@ var Project = (function () {
 // Function Section
 // ========================================================= //
 var node;
-var dir = "./docs";
+var dir;
 var listPdf = new ListPdf(new Array, new Array, dir);
 var listAnnotation = new ListAnnotations(dir);
 var util = new Utils();
@@ -1929,7 +1887,7 @@ function programCaller(data, param) {
             project = new Project();
             break;
         /**
-         *When the refresh pdf is pressed
+         *When refresh pdf is pressed
          */
         case "refresh":
             /**
@@ -2063,7 +2021,6 @@ function programCaller(data, param) {
             //set routine for close project
             var status = project.getProjectStatus();
             project.setCloseProject(status);
-            project = new Project();
             break;
         case "saveProject":
             // set routine for save project

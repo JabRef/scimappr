@@ -291,15 +291,6 @@ class ListPdf extends Pdf {
         return this.listPdfFiles.length;
     }
 
-    /**
-     *subroutine for calling the get pdf private function
-     * @returns {any}
-     */
-    public getPdf(): any {
-        var result = this.getPdfFiles(this.directory);
-        return result;
-    }
-
     public getPdfFromFs(): any {
         var result = this.readPdfInDirectory(this.directory);
         return result;
@@ -385,34 +376,6 @@ class ListPdf extends Pdf {
     }
 
     /**
-     * This is the promise to get file names from the given directory in server
-     * @param inputURL
-     * @returns {any}
-     */
-    private getPdfFiles(inputURL: string): any {
-
-        var process = new Promise(function (resolve, reject) {
-            var promises = [], promise;
-            var xhr = $.ajax({
-                //This will retrieve the contents of the folder if the folder is configured as 'browsable'
-                type: "GET",
-                url: inputURL,
-                success: function (data) {
-                    //List all pdfs file names in the page
-                    var counter: number = 0;
-                    $(data).find("a:contains(" + ".pdf" + ")").each(function (success) {
-                        promise = this.href.replace("http://", "").replace("localhost/", "").replace("scimappr/", "docs/");
-                        promises.push(promise);
-                    });
-                    resolve(promises);
-                }
-            });
-        });
-
-        return process;
-    }
-
-    /**
      * For each Pdf files get list of the pages that contain annotation
      * @param filePath
      * @param fileName
@@ -440,8 +403,6 @@ class ListPdf extends Pdf {
         return processPage;
 
     }
-
-
 }
 
 /**
@@ -732,25 +693,6 @@ class Utils {
     }
 
     /**
-     * The real method in order to get the last modified date from the given URL
-     * @param url
-     * @returns {any}
-     */
-    public getLastMod(url: string): any {
-        var lastModifiedDate;
-        var xhr = $.ajax({
-            type: "GET",
-            cache: false,
-            async: false,
-            url: url,
-            success: function (data, status, res) {
-                lastModifiedDate = res.getResponseHeader("Last-Modified");
-            }
-        });
-        return lastModifiedDate;
-    }
-
-    /**
      * The real method in order to get the last modified date from the given URL (using fs)
      * @param url
      * @returns {any}
@@ -892,7 +834,7 @@ class Gui {
         return this.jsMindSavedState[idx];
     }
 
-    public setJsMindStatusState(input:string, idx:number) {
+    public setJsMindStatusState(input: string, idx: number) {
         this.jsMindStatusState[idx] = input;
     }
 
@@ -1088,12 +1030,12 @@ class Gui {
         try {
 
             data = JSON.parse(fs.readFileSync('./projects.json'));
-        } catch (e) {}
+        } catch (e) { }
         if (data.length == 0) {
             $('#recentProjectsList').html('<li>&nbsp;&nbsp;<i>No Projects</i></li>');
         } else {
-            var projectList:any = data.map(function(each) {
-                return `<li><a href="javascript:programCaller('openRecentProject', '`+each.projectFilePath.split('\\').join('\\\\')+`')">&nbsp;&nbsp;${each.projectName} <i>(${each.projectFilePath})</i></a></li>`;
+            var projectList: any = data.map(function (each) {
+                return `<li><a href="javascript:programCaller('openRecentProject', '` + each.projectFilePath.split('\\').join('\\\\') + `')">&nbsp;&nbsp;${each.projectName} <i>(${each.projectFilePath})</i></a></li>`;
             });
             $('#recentProjectsList').html(projectList.join(''));
         }
@@ -1137,17 +1079,17 @@ class ContextMenu extends Gui {
     public actionOpenPdf(directory: string) {
         var selected_node = _jm.get_selected_node(); // select node when mouseover
         var pdfViewer: string = "./build/pdf.js/web/viewer.html";
-        var fileName:string = null;
-        var page:string = null;
-        if((selected_node.pdfid != null) && (selected_node.pdfid != undefined)){fileName = "?file=" + selected_node.pdfid; page = "#page=" + selected_node.index;}
-        else{
+        var fileName: string = null;
+        var page: string = null;
+        if ((selected_node.pdfid != null) && (selected_node.pdfid != undefined)) { fileName = "?file=" + selected_node.pdfid; page = "#page=" + selected_node.index; }
+        else {
             var id_temp = selected_node.id;
             var temp_element = node.findNodeByAttribute("id", id_temp);
             var temp_html = temp_element.outerHTML;
             fileName = temp_html.substring(temp_html.indexOf("?file="), temp_html.indexOf("target="));
             page = null;
         }
-               
+
         window.open(pdfViewer + fileName + page, "_blank", "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=1000, height=1000");
         $('#contextMenu').hide();
     }
@@ -1157,12 +1099,12 @@ class ContextMenu extends Gui {
         const { shell } = require('electron');
 
         var fileName: string = null;
-        if((selected_node.pdfid != null) && (selected_node.pdfid != undefined)){fileName = selected_node.pdfid}
-        else{
+        if ((selected_node.pdfid != null) && (selected_node.pdfid != undefined)) { fileName = selected_node.pdfid }
+        else {
             var id_temp = selected_node.id;
             var temp_element = node.findNodeByAttribute("id", id_temp);
             var temp_html = temp_element.outerHTML;
-            fileName = temp_html.substring(temp_html.indexOf("pdfid=")+7, temp_html.indexOf("style=")-2); 
+            fileName = temp_html.substring(temp_html.indexOf("pdfid=") + 7, temp_html.indexOf("style=") - 2);
         }
         shell.openItem(fileName);
         $('#contextMenu').hide();
@@ -1851,8 +1793,8 @@ class Project {
         this.setProjectName((<HTMLInputElement>document.getElementById("projectName")).value);
         this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), "", "");
         this.setProjectStatus("edited");
-        guiSideBar.createTreeView(this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList());
         mindmapMenu.newMap(this, this.getProjectName());
+        guiSideBar.createTreeView(this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList());
         programCaller('refreshAll');
     }
 
@@ -1873,6 +1815,8 @@ class Project {
      * @param projectName 
      * @param projectLoc 
      * @param listFiles 
+     * @param projectSavedFile 
+     * @param projectSavedPdf 
      */
     private saveProject(util: any, projectName: string, projectLoc: string, listFiles: string[], projectSavedFile: string, projectSavedPdf: string): string {
         var project: any = [];
@@ -1921,7 +1865,7 @@ class Project {
             annotation
         });
         var result: string = util.setJsonFile(itemResult);
-        this.addToRecentProjects(projectName, projectLoc+"\\"+projectName+".json");
+        this.addToRecentProjects(projectName, projectLoc + "\\" + projectName + ".json");
         gui.loadRecentProjects();
         return result;
     }
@@ -1946,7 +1890,8 @@ class Project {
     }
 
     /**
-     * to save temporary project for Multiple Project
+     *  to save temporary project for Multiple Project
+     * @param param 
      */
     public setTempSaveProject(param: string) {
 
@@ -1986,7 +1931,7 @@ class Project {
      * @param projectName 
      * @param projectFilePath 
      */
-    public addToRecentProjects(projectName:string, projectFilePath:string) {
+    public addToRecentProjects(projectName: string, projectFilePath: string) {
         var data;
         var files;
         var fs = require('fs');
@@ -1998,7 +1943,7 @@ class Project {
         }
         var recentProjects = JSON.parse(data);
         // Prevent duplicate entries
-        var alreadyExists = recentProjects.filter(function (e) { return e.projectFilePath == projectFilePath }).length > 0; 
+        var alreadyExists = recentProjects.filter(function (e) { return e.projectFilePath == projectFilePath }).length > 0;
         if (alreadyExists) {
             return;
         }
@@ -2006,7 +1951,7 @@ class Project {
         fs.writeFileSync('./projects.json', JSON.stringify(recentProjects));
     }
 
-    public openRecentProject(projectFilePath:string) {
+    public openRecentProject(projectFilePath: string) {
         var self = this;
         var fs = require('fs');
         fs.readFile(projectFilePath, function (err, data) {
@@ -2014,7 +1959,8 @@ class Project {
                 return console.error(err);
             }
             self.openProject(data, self, null, null);
-        });        
+            guiSideBar.createTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
+        });
     }
 
 
@@ -2077,20 +2023,26 @@ class Project {
             // fetch data from .jm or .mm file
             var htmlContent: any = (<HTMLInputElement>document.getElementById('mindmap-chooser'));
             var fileName: string = self.getProjectName();
-            var content = util.readAnyTypeFile(self.getProjectSavedFileLocation(), 'utf8');
+            
+             // if there is no mindmap, savedFileLocation will be undefined 
+            if (self.getProjectSavedFileLocation()) {
+                var content = util.readAnyTypeFile(self.getProjectSavedFileLocation(), 'utf8');
+            }
 
             Promise.all([content]).then(function (result) {
-                if (self.getProjectSavedFileLocation().indexOf(".mm") == -1) {
-                    // if file is not .mm
-                    var type: string = "jm";
-                } else {
-                    //if file is .mm
-                    type = "mm";
+                if (self.getProjectSavedFileLocation()) {
+                    if (self.getProjectSavedFileLocation().indexOf(".mm") == -1) {
+                        // if file is not .mm
+                        var type: string = "jm";
+                    } else {
+                        //if file is .mm
+                        type = "mm";
+                    }
+
+                    mindmapMenu.loadFileJsMind(result, type, fileName + "." + type);
+
+                    gui.loadPdfButton(dataObject);
                 }
-
-                mindmapMenu.loadFileJsMind(result, type, fileName + "." + type);
-
-                gui.loadPdfButton(dataObject);
 
                 if (mode == "listener") {
                     self.setTempSaveProject("openProject");
@@ -2100,6 +2052,7 @@ class Project {
             });
 
         }
+
 
     }
 
@@ -2173,7 +2126,7 @@ interface NodesObject extends Array<object> {
 // ========================================================= //
 
 var node: any;
-var dir: string = "./docs";
+var dir: string;
 var listPdf: any = new ListPdf(new Array, new Array, dir);
 var listAnnotation: any = new ListAnnotations(dir);
 var util: any = new Utils();
@@ -2187,7 +2140,7 @@ var project: any = null;
  * Main program, it is also called from the HTML file
  * @param data
  */
-function programCaller(data: any, param:any = '') {
+function programCaller(data: any, param: any = '') {
 
     switch (data) {
 
@@ -2206,8 +2159,8 @@ function programCaller(data: any, param:any = '') {
             // set listener for JsMind changes
             gui.setJsmindListener(contextMenu);
 
-             // Load recent projects list
-             gui.loadRecentProjects();
+            // Load recent projects list
+            gui.loadRecentProjects();
 
             // set initialize for Gui in sidebar
             guiSideBar = new GuiSideBar();
@@ -2218,7 +2171,7 @@ function programCaller(data: any, param:any = '') {
             break;
 
         /**
-         *When the refresh pdf is pressed
+         *When refresh pdf is pressed
          */
         case "refresh":
 
@@ -2280,7 +2233,7 @@ function programCaller(data: any, param:any = '') {
             }
 
             break;
-        
+
         /**
          * refresh without consent of sidebar checking
          */
@@ -2364,7 +2317,6 @@ function programCaller(data: any, param:any = '') {
             //set routine for close project
             var status = project.getProjectStatus();
             project.setCloseProject(status);
-            project = new Project();
             break;
         case "saveProject":
             // set routine for save project
@@ -2374,7 +2326,6 @@ function programCaller(data: any, param:any = '') {
                 gui.windowAlert("project is saved in" + " " + msg);
             }
             break;
-        
         case "openRecentProject":
             project.openRecentProject(param);
             break;
