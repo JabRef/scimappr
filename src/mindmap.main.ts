@@ -5,7 +5,7 @@ declare var hex_sha1: any;
 declare var require: any;
 
 declare var hex_hmac_sha1: any;
-declare var _jm: { get_selected_node: Function, select_node: Function, show: Function, add_node: Function, mind: { nodes: Function }, add_event_listener: Function, get_data: Function };
+declare var _jm: { get_selected_node: Function, resize:Function, select_node: Function, show: Function, add_node: Function, mind: { nodes: Function }, add_event_listener: Function, get_data: Function };
 declare var jsMind: any;
 declare var jmnodes: any;
 declare var Buffer: any;
@@ -403,6 +403,14 @@ class ListPdf extends Pdf {
         return processPage;
 
     }
+
+    /**
+     * to clear states of list Pdf
+     */
+    public clrListPdfState() {
+        this.listPdfFiles = new Array();
+        this.lastModDatePdfFiles = new Array();
+    }
 }
 
 /**
@@ -788,12 +796,14 @@ class Gui {
     private jsMindProjectSavedState: string[]; // for saving temporary project state related to currently opened JsMind (in .json format) 
     private jsMindSavedState: string[]; // for saving temporary jsmind state related to currently opened JsMind (in .mm or .jm format)
     private jsMindStatusState: string[]; // for saving temporary jsmind status state related to currently opened JsMind (edited or noedit)
+    private jsMindCurrentlyOpenedProject:number // for saving currently opened project state by its index number (1, 2, 3, etc)
 
     constructor() {
         this.jsMindProjectNameState = new Array();
         this.jsMindSavedState = new Array();
         this.jsMindProjectSavedState = new Array();
         this.jsMindStatusState = new Array();
+        this.jsMindCurrentlyOpenedProject = 0;
     }
 
     public setJsMindProjectNameState(input: string, idx: number) {
@@ -801,11 +811,15 @@ class Gui {
     }
 
     public getJsMindProjectNameState(name: string): number {
-        for (var x = 0; x < this.jsMindProjectNameState.length; x++) {
+        for (var x = 1; x <= this.jsMindProjectNameState.length; x++) {
             if (this.jsMindProjectNameState[x] == name) {
                 return x;
             }
         }
+    }
+
+    public getMindProjectName(idx:number):string {
+        return this.jsMindProjectNameState[idx];
     }
 
     public getCountProjectStatesNumber(): number {
@@ -840,6 +854,51 @@ class Gui {
 
     public getJsMindStatusState(idx: number) {
         return this.jsMindStatusState[idx];
+    }
+
+    public setJsMindOpenProject(input:number){
+        this.jsMindCurrentlyOpenedProject = input;
+    }
+
+    public getJsMindOpenProject():number {
+        return this.jsMindCurrentlyOpenedProject;
+    }
+
+    public setReCreateState(list:any) {
+        
+        var newListName:string[] = new Array();
+        var newSavedState:string[] = new Array();
+        var newProjectState:string[] = new Array();
+        var newStatusState:string[] = new Array();
+        var newOpenedProject:number = 0;
+        for(var i = 0; i<list.length; i++) {
+            for(var j = 1;j <= this.jsMindProjectNameState.length;j++){
+                if(list[i].text == this.jsMindProjectNameState[j]){
+                    newListName[i] = this.jsMindProjectNameState[j];
+                    newSavedState[i] = this.jsMindSavedState[j];
+                    newProjectState[i] = this.jsMindProjectSavedState[j];
+                    newStatusState[i] = this.jsMindStatusState[j];
+                }
+            }
+        }
+
+        newOpenedProject = list.length;
+
+        this.jsMindProjectNameState = new Array();
+        this.jsMindSavedState = new Array();
+        this.jsMindProjectSavedState = new Array();
+        this.jsMindStatusState = new Array();
+        this.jsMindCurrentlyOpenedProject = 0;
+
+        this.setJsMindOpenProject(newOpenedProject);
+        var x = 1;
+        for(var i = 0; i<newListName.length; i++) {
+            this.setJsMindProjectNameState(newListName[i], x);
+            this.setJsMindSavedState(newSavedState[i], x);
+            this.setJsMindProjectState(newProjectState[i], x);
+            this.setJsMindStatusState(newStatusState[i], x);
+            x++;
+        }
     }
 
     /**
@@ -888,6 +947,29 @@ class Gui {
      */
     public windowAlert(msg: string) {
         alert(msg);
+    }
+
+    /**
+     * listener for size changing
+     */
+    public windowResizeListener() {
+        var c = document.getElementById('jsmind_container');
+        var widthSize = c.offsetWidth;
+        var heightSize = c.offsetHeight;
+
+        window.addEventListener('resize', function(result){
+            if((window.innerWidth == widthSize) && (window.innerHeight == heightSize)) {
+                c.style.width = widthSize.toString();
+                c.style.height = heightSize.toString();
+                _jm.resize();
+            } else {
+                var width = window.innerWidth - 170;
+                var height = window.innerHeight - 300;
+                c.style.width = width.toString();
+                c.style.height = height.toString();
+                _jm.resize();
+            }
+        });
     }
 
     /**
@@ -1310,7 +1392,7 @@ class GuiSideBar extends Gui {
     /**
      *Clear the side bar annotation tab
      */
-    public resetSidebar() {
+    public resetSidebarAnnotation() {
         $("#annotation-group").empty();
     }
 
@@ -1337,7 +1419,7 @@ class GuiSideBar extends Gui {
      */
     public searchAnnotation(keyword: string, directory: string) {
         if (keyword == "") {
-            this.resetSidebar();
+            this.resetSidebarAnnotation();
             programCaller("refreshAll");
         } else {
             var listAnnotation: any = document.querySelectorAll("#annotation-group");
@@ -1359,7 +1441,7 @@ class GuiSideBar extends Gui {
             }
 
             // Set The GUI based on selected annotation
-            this.resetSidebar();
+            this.resetSidebarAnnotation();
             this.setGuiInit(util.setJsonFile(temp), directory);
         }
     }
@@ -1385,24 +1467,7 @@ class GuiSideBar extends Gui {
                 if (project.getProjectName() == data.text) {
                     // do nothing
                 } else {
-                    var idx: number = gui.getJsMindProjectNameState(data.text);
-                    if (idx > 0) {
-                        // read from last state of the project
-                        var lastProjectState = gui.getJsMindProjectState(idx);
-                        var lastJsMindState = gui.getJsMindSavedState(idx);
-                        var lastJsMindStatusState = gui.getJsMindStatusState(idx);
-                        project = new Project();
-                        project.openProject(lastProjectState, project, "chgProject", lastJsMindState);
-                        project.setProjectStatus(lastJsMindStatusState);
-                    } else {
-                        // read from existing project file .json
-                        var projFullPath: string = project.getProjectLocation() + "\\" + data.text + ".json";
-                        var content = util.readAnyTypeFile(projFullPath, "utf8");
-                        Promise.all([content]).then(function (result) {
-                            project = new Project();
-                            project.openProject(result[0], project, "chgProject", null);
-                        })
-                    }
+                   project.openProjectFromTreeView(data.text);
                 }
             }
         });
@@ -1412,17 +1477,16 @@ class GuiSideBar extends Gui {
      * Clear Treeview in sidebar project tab
      */
     public resetTreeView() {
-        project.setProjectTreeView("");
         $('#tree').treeview({ data: "" });
     }
 
     /**
-    * Create bootstrap treeview file
+    * Create bootstrap treeview file & populate file from all pdf lists
     * @param projectName 
     * @param projectLoc 
     * @param listFiles 
     */
-    public createTreeView(projectName: string, projectLoc: string, listFiles: string[]) {
+    public setTreeView(projectName: string, projectLoc: string, listFiles: string[]) {
         var itemDirProject: any = [];
         var tempNodeName: any = [];
 
@@ -1456,6 +1520,39 @@ class GuiSideBar extends Gui {
         listPdf.setListPdfFile(listFiles);
         listPdf.setLastModDate(listPdf.getModDateFs(util, project.getProjectSavedPdfLocation(), listFiles));
         project.setProjectTreeView(resultDir);
+    }
+
+    /**
+     * repopulate the treeview after close one project
+     */
+    public setReCreateTreeView():any {
+        try{
+            var tempTreeView:any = JSON.parse(project.getProjectTreeView());
+        } catch(e) {
+            alert(e);
+        }
+        
+        var idx:number = gui.getJsMindOpenProject();
+        if(idx > 0) {
+            var tempOpenProjectName:string = gui.getMindProjectName(idx);
+            var newTreeViewList:any = new Array();
+            console.log(tempTreeView);
+            var j = 0;
+            for(var i = 1; i <= tempTreeView.length; i++) {
+                if(tempTreeView[i-1].text != tempOpenProjectName) {
+                    newTreeViewList[j] = tempTreeView[i - 1];
+                    j++;
+                }
+            }
+    
+            var tempTreeViewString = JSON.stringify(newTreeViewList);
+            this.openTreeView(tempTreeViewString);
+            project.setProjectTreeView(tempTreeViewString);
+        } else {
+            newTreeViewList = "";
+        }
+        
+        return newTreeViewList;
     }
 
 
@@ -1569,9 +1666,11 @@ class Project {
     private projectSavedFileLocation: string // to save the location of .mm or .jm file
     private projectSavedPDFLocation: string // to save the location of PDFs file
     private projectTreeView: string // to save treeview JSON file
+    private projectPromises:any[] // to save new Project promises (for saving home folder & pdfs)
 
     constructor() {
-        this.projectPdfList = new Array;
+        this.projectPdfList = new Array();
+        this.projectPromises = new Array();
         this.projectStatus = "noedit";
         this.projectTreeView = "";
         this.projectName = "";
@@ -1681,6 +1780,16 @@ class Project {
         return this.projectTreeView;
     }
 
+    public setProjectPromises(input:any[]) {
+        for (var i = 0; i < input.length; i++) {
+            this.projectPromises[i] = input[i];
+        }
+    }
+
+    public getProjectPromises():any[] {
+        return this.projectPromises;
+    }
+
     /**
      * to validate & check the requirements for new project
      */
@@ -1723,16 +1832,17 @@ class Project {
      */
     public setNewProjectModal() {
         gui.windowNewProject();
-        this.setNewProjectListener()
+        this.setNewProjectListener();
     }
 
     /**
      * Listener to the New Project
      */
     private setNewProjectListener() {
-        var self: any = this;
+        var self = this;
         var pathName: string = "";
         var dirProcess: any = null;
+        var promises:any[] = new Array();
 
         var promise = new Promise(function (resolve, reject) {
             $("#pdf-chooser").on("change", function (result) {
@@ -1759,43 +1869,54 @@ class Project {
                     (<HTMLInputElement>document.getElementById("projectPdf")).value = listFiles;
                     lastResult.push(arrayList);
                     resolve(lastResult);
-                });
-                $("#pdf-chooser").val("");
+                });  
             });
 
         });
 
-        Promise.all([promise]).then(function (result) {
-            var tempResult: any = result[0];
-            self.setProjectSavedPdfLocation(tempResult[0]);
-            self.setProjectPdfList(tempResult[1]);
-        });
+        promises.push(promise);
 
         var promise2 = new Promise(function (resolve, reject) {
             $("#folder-chooser").on("change", function (result) {
                 pathName = result.target.files[0].path;
                 (<HTMLInputElement>document.getElementById("projectHome")).value = pathName;
                 resolve(pathName);
-                $("#folder-chooser").val("");
             });
         });
 
-        Promise.all([promise2]).then(function (result) {
+        Promise.all([promise, promise2]).then(function (result) {
             var tempResult: any = result[0];
-            self.setProjectLocation(tempResult);
+            var tempResult2: any = result[1];
+            self.projectPdfList = new Array();
+            self.setProjectSavedPdfLocation(tempResult[0]);
+            self.setProjectPdfList(tempResult[1]);
+            self.setProjectLocation(tempResult2);
         });
+
+        promises.push(promise2);
+
+        this.setProjectPromises(promises);
     }
 
     /**
      * When save button is pressed in new project modal
      */
     public createNewProject() {
-        this.setProjectName((<HTMLInputElement>document.getElementById("projectName")).value);
-        this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), "", "");
-        this.setProjectStatus("edited");
-        mindmapMenu.newMap(this, this.getProjectName());
-        guiSideBar.createTreeView(this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList());
-        programCaller('refreshAll');
+        var promises:any[] = this.getProjectPromises();
+        var promise = promises[0];
+        var promise2 = promises[1];
+        var self = this;
+
+        Promise.all([promise, promise2]).then(function (result) {
+            self.setProjectName((<HTMLInputElement>document.getElementById("projectName")).value);
+            self.saveProject(util, self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList(), "", "");
+            self.setProjectStatus("edited");
+            mindmapMenu.newMap(self, self.getProjectName());
+            guiSideBar.setTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
+            programCaller('refreshAll');
+            $("#pdf-chooser").val("");
+            $("#folder-chooser").val("");
+        }); 
     }
 
     /**
@@ -1959,7 +2080,7 @@ class Project {
                 return console.error(err);
             }
             self.openProject(data, self, null, null);
-            guiSideBar.createTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
+            guiSideBar.setTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
         });
     }
 
@@ -1984,8 +2105,9 @@ class Project {
                 if (err) {
                     return console.error(err);
                 }
+                self.clrProjectState();
                 self.openProject(data, self, "listener", null);
-                guiSideBar.createTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
+                guiSideBar.setTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
             });
             $("#file-chooser").val("");
         });
@@ -2006,6 +2128,7 @@ class Project {
         self.setProjectSavedFileLocation(dataObject[0].project[0].savedfile);
         self.setProjectSavedPdfLocation(dataObject[0].project[0].savedPdf);
 
+        listPdf.listPdfFiles = new Array();
         listPdf.setDirectory(self.getProjectSavedPdfLocation());
         listPdf.setListPdfFile(self.getProjectPdfList());
 
@@ -2046,6 +2169,8 @@ class Project {
 
                 if (mode == "listener") {
                     self.setTempSaveProject("openProject");
+                    var idx: number = gui.getJsMindProjectNameState(self.getProjectName());
+                    gui.setJsMindOpenProject(idx);
                 }
 
                 programCaller('refreshAll');
@@ -2054,6 +2179,32 @@ class Project {
         }
 
 
+    }
+
+    /**
+     * Opening Project Using TreeView Event Handler
+     * @param input 
+     */
+    public openProjectFromTreeView(input:string) {
+        var idx: number = gui.getJsMindProjectNameState(input);
+        if (idx > 0) {
+            gui.setJsMindOpenProject(idx);
+            // read from last state of the project
+            var lastProjectState = gui.getJsMindProjectState(idx);
+            var lastJsMindState = gui.getJsMindSavedState(idx);
+            var lastJsMindStatusState = gui.getJsMindStatusState(idx);
+            project.clrProjectState();
+            project.openProject(lastProjectState, project, "chgProject", lastJsMindState);
+            project.setProjectStatus(lastJsMindStatusState);
+        } else {
+            // read from existing project file .json
+            var projFullPath: string = project.getProjectLocation() + "\\" + input + ".json";
+            var content = util.readAnyTypeFile(projFullPath, "utf8");
+            Promise.all([content]).then(function (result) {
+                project.clrProjectState();
+                project.openProject(result[0], project, "chgProject", null);
+            })
+        }
     }
 
     /**
@@ -2082,8 +2233,29 @@ class Project {
 
         this.setProjectStatus("noedit");
         guiSideBar.resetTreeView();
-        guiSideBar.resetSidebar();
-        mindmapMenu.newMap(project, "Root");
+        var newList = guiSideBar.setReCreateTreeView();
+        guiSideBar.resetSidebarAnnotation();
+        if(newList.length != 0) {
+            gui.setReCreateState(newList);
+            var tempProjectName:string = gui.getMindProjectName(gui.getJsMindOpenProject());
+            this.openProjectFromTreeView(tempProjectName);
+            guiSideBar.setTreeViewListener();
+        } else {
+            mindmapMenu.newMap(project, "Root");
+            project.clrProjectState();
+            listPdf.clrListPdfState();
+        }
+    }
+
+    /**
+     * to clear some of the project states
+     */
+    public clrProjectState() {
+        this.projectPdfList = new Array();
+        this.projectPromises = new Array();
+        this.projectName = null;
+        this.projectLocation = null;
+        this.projectStatus = "noedit";
     }
 
 }
@@ -2162,6 +2334,9 @@ function programCaller(data: any, param: any = '') {
             // Load recent projects list
             gui.loadRecentProjects();
 
+            // go to these section when resize the window
+            gui.windowResizeListener();
+
             // set initialize for Gui in sidebar
             guiSideBar = new GuiSideBar();
 
@@ -2186,7 +2361,7 @@ function programCaller(data: any, param: any = '') {
 
             //get PDF's lists
             var pdfProcess = listPdf.getPdfFromFs();
-            guiSideBar.resetSidebar();
+            guiSideBar.resetSidebarAnnotation();
 
             // get annotation's lists
             Promise.all([pdfProcess]).then(function (response) {
@@ -2240,7 +2415,7 @@ function programCaller(data: any, param: any = '') {
         case "refreshAll":
             //get PDF's lists
             var pdfProcess = listPdf.getPdfFromFs();
-            guiSideBar.resetSidebar();
+            guiSideBar.resetSidebarAnnotation();
 
             // get annotation's lists
             Promise.all([pdfProcess]).then(function (response) {
@@ -2317,6 +2492,7 @@ function programCaller(data: any, param: any = '') {
             //set routine for close project
             var status = project.getProjectStatus();
             project.setCloseProject(status);
+            
             break;
         case "saveProject":
             // set routine for save project
