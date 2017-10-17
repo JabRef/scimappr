@@ -8,6 +8,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var path = require('path');
 // ========================================================= //
 // Class Section
 // ========================================================= //
@@ -266,6 +267,7 @@ var ListPdf = (function (_super) {
      * @param dir
      */
     ListPdf.prototype.setDirectory = function (dir) {
+        dir = path.normalize(dir);
         this.directory = dir;
     };
     /**
@@ -287,7 +289,7 @@ var ListPdf = (function (_super) {
         var stsChange = false;
         var indexChange = 0;
         for (var x = 0; x < list.length; x++) {
-            newLastMod[x] = util.getLastMod(list[x]);
+            newLastMod[x] = util.getLastModFs(project.getProjectSavedPdfLocation(), list[x]);
         }
         for (var x = 0; x < list.length; x++) {
             if (newLastMod[x] != this.lastModDatePdfFiles[x]) {
@@ -300,13 +302,13 @@ var ListPdf = (function (_super) {
     };
     /**
      * reading all pdf files in the specified directory
-     * @param path
+     * @param paths
      */
-    ListPdf.prototype.readPdfInDirectory = function (path) {
+    ListPdf.prototype.readPdfInDirectory = function (paths) {
         var process = new Promise(function (resolve, reject) {
             var promises = [], promise;
             var fs = require("fs");
-            fs.readdir(path, function (err, filenames) {
+            fs.readdir(paths, function (err, filenames) {
                 if (err) {
                     alert("error reading directory");
                     return;
@@ -618,9 +620,12 @@ var Utils = (function () {
     Utils.prototype.getLastModFs = function (location, url) {
         var lastModifiedDate;
         var fs = require('fs');
-        fs.stat(location + "\\" + url, function (err, stats) {
-            lastModifiedDate = stats.mtime;
-        });
+        //fs.stat(location + "//" + url, function (err, stats) {
+        //lastModifiedDate = stats.mtime;
+        //});
+        var result = fs.statSync(path.join(location, url));
+        console.log(result);
+        lastModifiedDate = result.mtime;
         return lastModifiedDate;
     };
     /**
@@ -636,10 +641,10 @@ var Utils = (function () {
         }
         return stsResult;
     };
-    Utils.prototype.writeAnyTypeFile = function (path, input, name, type) {
+    Utils.prototype.writeAnyTypeFile = function (paths, input, name, type) {
         var fs = require('fs');
         var buffer = new Buffer(input);
-        fs.open(path + "\\" + name + "." + type, 'w', function (err, fd) {
+        fs.open(path.join(paths, name) + "." + type, 'w', function (err, fd) {
             if (err) {
                 throw 'error opening file: ' + err;
             }
@@ -647,7 +652,7 @@ var Utils = (function () {
                 if (err)
                     throw 'error writing file: ' + err;
                 fs.close(fd, function () {
-                    console.log('file has been written to ' + path + "\\" + name + "." + type);
+                    console.log('file has been written to ' + path.join(paths, name) + "." + type);
                 });
             });
         });
@@ -991,6 +996,9 @@ var Gui = (function () {
             guiSideBar.setAnnotationTitleVisibility();
             self.setElementVisibility();
         });
+        $('#wrapper').click(function () {
+            $('#contextMenu').hide();
+        });
     };
     /**
      * set listener of the context menu (when user do right click)
@@ -1070,7 +1078,7 @@ var Gui = (function () {
         }
         else {
             var projectList = data.map(function (each) {
-                return "<li><a href=\"javascript:programCaller('openRecentProject', '" + each.projectFilePath.split('\\').join('\\\\') + ("')\">&nbsp;&nbsp;" + each.projectName + " <i>(" + each.projectFilePath + ")</i></a></li>");
+                return "<li><a href=\"javascript:programCaller('openRecentProject', '" + each.projectFilePath.split('//').join('////') + ("')\">&nbsp;&nbsp;" + each.projectName + " <i>(" + each.projectFilePath + ")</i></a></li>");
             });
             $('#recentProjectsList').html(projectList.join(''));
         }
@@ -1176,6 +1184,7 @@ var ContextMenu = (function (_super) {
             return;
         }
         _jm.remove_node(selected_id);
+        project.setTempSaveProject("chgProject");
         $('#contextMenu').hide();
     };
     return ContextMenu;
@@ -1242,10 +1251,11 @@ var MindmapMenu = (function (_super) {
      */
     MindmapMenu.prototype.saveFile = function (fileType, mind_str) {
         // Saving State into Project
-        project.setProjectSavedFileLocation(project.getProjectLocation() + "\\" + project.getProjectName() + "." + fileType);
+        project.setProjectSavedFileLocation(path.join(project.getProjectLocation(), project.getProjectName()) + "." + fileType);
         project.setSaveProject();
-        util.writeAnyTypeFile(project.getProjectLocation(), mind_str, project.getProjectName(), "mm");
-        return (project.getProjectLocation() + "\\" + project.getProjectName() + "." + fileType);
+        project.setProjectStatus('noedit');
+        util.writeAnyTypeFile(project.getProjectLocation(), mind_str, project.getProjectName(), fileType);
+        return (path.join(project.getProjectLocation(), project.getProjectName()) + "." + fileType);
     };
     /**
      * get data from JsMind
@@ -1456,7 +1466,7 @@ var GuiSideBar = (function (_super) {
             tempNodeName.push({
                 text: listFiles[j],
                 icon: "glyphicon glyphicon-file",
-                href: projectLoc + "\\" + listFiles[j]
+                href: path.join(projectLoc, listFiles[j])
             });
         }
         itemDirProject.push({
@@ -1549,7 +1559,7 @@ var GuiSideBar = (function (_super) {
             project.setProjectTreeView(tempTreeViewString);
         }
         else {
-            newTreeViewList = "";
+            newTreeViewList = new Array();
         }
         return newTreeViewList;
     };
@@ -1618,7 +1628,7 @@ var GuiSideBar = (function (_super) {
         htmlContent.setAttribute("parentid", util.getHashFunction(node.getFileName()));
         htmlContent.value = node.getPageNumber();
         htmlContent.innerHTML = node.getTopic();
-        htmlContent.title = directory + "\\" + node.getFileName();
+        htmlContent.title = path.join(directory, node.getFileName());
         this.basicHtmlContent = htmlContent;
         if (mode == "init") {
             $(this.basicHtmlContent).appendTo(appendToName);
@@ -1725,6 +1735,7 @@ var Project = (function () {
      * @param input
      */
     Project.prototype.setProjectLocation = function (input) {
+        input = path.normalize(input);
         this.projectLocation = input;
     };
     /**
@@ -1765,6 +1776,7 @@ var Project = (function () {
      * to save the file (.mm or .jm) location
      */
     Project.prototype.setProjectSavedFileLocation = function (input) {
+        input = path.normalize(input);
         this.projectSavedFileLocation = input;
     };
     /**
@@ -1778,6 +1790,7 @@ var Project = (function () {
      * @param input
      */
     Project.prototype.setProjectSavedPdfLocation = function (input) {
+        input = path.normalize(input);
         this.projectSavedPDFLocation = input;
     };
     /**
@@ -1919,6 +1932,7 @@ var Project = (function () {
             self.setProjectStatus("edited");
             mindmapMenu.newMap(self, self.getProjectName());
             guiSideBar.setTreeView(self.getProjectName(), self.getProjectLocation(), self.getProjectPdfList());
+            self.setTempSaveProject("newProject");
             programCaller('refreshAll');
             $("#pdf-chooser").val("");
             $("#folder-chooser").val("");
@@ -1931,7 +1945,6 @@ var Project = (function () {
         var msg = this.getProjectLocation();
         var result = this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), this.getProjectSavedFileLocation(), this.getProjectSavedPdfLocation());
         util.writeAnyTypeFile(this.getProjectLocation(), result, this.getProjectName(), "json");
-        this.setProjectStatus('noedit');
         return msg;
     };
     /**
@@ -1986,7 +1999,7 @@ var Project = (function () {
             annotation: annotation
         });
         var result = util.setJsonFile(itemResult);
-        this.addToRecentProjects(projectName, projectLoc + "\\" + projectName + ".json");
+        this.addToRecentProjects(projectName, path.join(projectLoc, projectName) + ".json");
         gui.loadRecentProjects();
         return result;
     };
@@ -2014,6 +2027,7 @@ var Project = (function () {
      */
     Project.prototype.setTempSaveProject = function (param) {
         switch (param) {
+            // when there is a change in the project, then save the last edited state of the project
             case "chgProject":
                 var projectState = this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), this.getProjectSavedFileLocation(), this.getProjectSavedPdfLocation());
                 var x = gui.getJsMindProjectNameState(this.getProjectName());
@@ -2023,7 +2037,19 @@ var Project = (function () {
                 var jsMindStatusState = this.getProjectStatus();
                 gui.setJsMindStatusState(jsMindStatusState, x);
                 break;
+            // when opening the project, then save the project before state before opening a new one
             case "openProject":
+                var projectState = this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), this.getProjectSavedFileLocation(), this.getProjectSavedPdfLocation());
+                var x = gui.getCountProjectStatesNumber();
+                gui.setJsMindProjectNameState(this.getProjectName(), x);
+                gui.setJsMindProjectState(projectState, x);
+                var jsMindState = mindmapMenu.loadFile("mm");
+                gui.setJsMindSavedState(jsMindState, x);
+                var jsMindStatusState = this.getProjectStatus();
+                gui.setJsMindStatusState(jsMindStatusState, x);
+                break;
+            // when new project, save the last state of the before project (if any) and do new one
+            case "newProject":
                 var projectState = this.saveProject(util, this.getProjectName(), this.getProjectLocation(), this.getProjectPdfList(), this.getProjectSavedFileLocation(), this.getProjectSavedPdfLocation());
                 var x = gui.getCountProjectStatesNumber();
                 gui.setJsMindProjectNameState(this.getProjectName(), x);
@@ -2180,7 +2206,7 @@ var Project = (function () {
         }
         else {
             // read from existing project file .json
-            var projFullPath = project.getProjectLocation() + "\\" + input + ".json";
+            var projFullPath = path.join(project.getProjectLocation(), input) + ".json";
             var content = util.readAnyTypeFile(projFullPath, "utf8");
             Promise.all([content]).then(function (result) {
                 project.clrProjectState();
@@ -2206,6 +2232,7 @@ var Project = (function () {
                     gui.windowAlert("file is saved in" + " " + locationFile);
                 }
                 else {
+                    gui.windowConfirmation('file has not been saved in .mm or .jm, save changes in .mm file instead?');
                     var content = mindmapMenu.loadFile("mm");
                     var locationFile = mindmapMenu.saveFile("mm", content);
                     gui.windowAlert("MM file is saved in" + " " + locationFile);
@@ -2299,7 +2326,7 @@ function programCaller(data, param) {
             Promise.all([pdfProcess]).then(function (response) {
                 listPdf.setListPdfFile(response[0]);
                 for (var i = 0; i < listPdf.getCount(); i++) {
-                    var pdfPages = listPdf.getPdfPage(listPdf.getDirectory() + "\\" + listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
+                    var pdfPages = listPdf.getPdfPage(path.join(listPdf.getDirectory(), listPdf.getListPdfFile(i)), listPdf.getListPdfFile(i));
                     Promise.all([pdfPages, pdfProcess, i]).then(function (responsePages) {
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[2]));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function (responseResult) {
@@ -2322,7 +2349,7 @@ function programCaller(data, param) {
             var numChange = change[2];
             if (change[0] == true) {
                 for (var i = 0; i < numChange; i++) {
-                    var pdfPages = listPdf.getPdfPage(listChange[i], listChange[i]);
+                    var pdfPages = listPdf.getPdfPage(path.join(project.getProjectSavedPdfLocation(), listChange[i]), listChange[i]);
                     Promise.all([pdfPages, i]).then(function (responsePages) {
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listChange[responsePages[1]]);
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function (responseResult) {
@@ -2347,7 +2374,7 @@ function programCaller(data, param) {
             Promise.all([pdfProcess]).then(function (response) {
                 listPdf.setListPdfFile(response[0]);
                 for (var i = 0; i < listPdf.getCount(); i++) {
-                    var pdfPages = listPdf.getPdfPage(listPdf.getDirectory() + "\\" + listPdf.getListPdfFile(i), listPdf.getListPdfFile(i));
+                    var pdfPages = listPdf.getPdfPage(path.join(listPdf.getDirectory(), listPdf.getListPdfFile(i)), listPdf.getListPdfFile(i));
                     Promise.all([pdfPages, pdfProcess, i]).then(function (responsePages) {
                         var pdfAnnots = listAnnotation.getAnnotations(responsePages[0], listPdf.getListPdfFile(responsePages[2]));
                         Promise.all([pdfProcess, pdfPages, pdfAnnots]).then(function (responseResult) {
@@ -2423,6 +2450,11 @@ function programCaller(data, param) {
             var saveProjectStatus = gui.windowConfirmation("save changes?");
             if (saveProjectStatus) {
                 var msg = project.setSaveProject();
+                if ((mindmapMenu.getFileTypeSave() != null)) {
+                    var content = mindmapMenu.loadFile(mindmapMenu.getFileTypeSave());
+                    var locationFile = mindmapMenu.saveFile(mindmapMenu.getFileTypeSave(), content);
+                }
+                project.setProjectStatus('noedit');
                 gui.windowAlert("project is saved in" + " " + msg);
             }
             break;
