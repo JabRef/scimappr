@@ -127,20 +127,6 @@ var Nodes = (function () {
         };
         return temp;
     };
-    /**
-     * Find Node by its attribute (nodeid, topic, pdfid)
-     * @param attr
-     * @param val
-     * @returns {any}
-     */
-    Nodes.prototype.findNodeByAttribute = function (attr, val) {
-        var All = document.getElementsByTagName('jmnode');
-        for (var i = 0; i < All.length; i++) {
-            if (All[i].getAttribute(attr) == val) {
-                return All[i];
-            }
-        }
-    };
     return Nodes;
 }());
 /**
@@ -916,7 +902,7 @@ var Gui = (function () {
                     if (realContent.id != "root") {
                         node = new Nodes(realContent.id, realContent.text, realContent.file, realContent.page);
                         self.setPdfButton(node.getId(), node.getFileName(), node.getPageNumber().toString(), node);
-                        var tempElement = node.findNodeByAttribute("nodeid", node.getId());
+                        var tempElement = this.findNodeByAttribute("nodeid", node.getId());
                         if ((tempElement != null) && (tempElement != undefined)) {
                             tempElement.setAttribute("pdfid", node.getFileName());
                         }
@@ -950,7 +936,7 @@ var Gui = (function () {
             imgElement.setAttribute("id", nodeid);
             imgElement.setAttribute("src", "./build/img/pdf.png");
             linkElement.appendChild(imgElement);
-            var selection = node.findNodeByAttribute("nodeid", nodeid);
+            var selection = this.findNodeByAttribute("nodeid", nodeid);
             selection.appendChild(linkElement);
         }
     };
@@ -1083,6 +1069,20 @@ var Gui = (function () {
             $('#recentProjectsList').html(projectList.join(''));
         }
     };
+    /**
+    * Routine to find Node of the mindmap by its attribute's name (ex:nodeid, topic, pdfid)
+    * @param attr
+    * @param val
+    * @returns {any}
+    */
+    Gui.prototype.findNodeByAttribute = function (attr, val) {
+        var All = document.getElementsByTagName('jmnode');
+        for (var i = 0; i < All.length; i++) {
+            if (All[i].getAttribute(attr) == val) {
+                return All[i];
+            }
+        }
+    };
     return Gui;
 }());
 /**
@@ -1139,7 +1139,7 @@ var ContextMenu = (function (_super) {
         }
         else {
             var id_temp = selected_node.id;
-            var temp_element = node.findNodeByAttribute("id", id_temp);
+            var temp_element = gui.findNodeByAttribute("id", id_temp);
             var temp_html = temp_element.outerHTML;
             fileName = temp_html.substring(temp_html.indexOf("?file="), temp_html.indexOf("target="));
             page = null;
@@ -1160,7 +1160,7 @@ var ContextMenu = (function (_super) {
         }
         else {
             var id_temp = selected_node.id;
-            var temp_element = node.findNodeByAttribute("id", id_temp);
+            var temp_element = gui.findNodeByAttribute("id", id_temp);
             var temp_html = temp_element.outerHTML;
             fileName = temp_html.substring(temp_html.indexOf("pdfid=") + 7, temp_html.indexOf("style=") - 2);
         }
@@ -2280,6 +2280,7 @@ var mindmapMenu;
 var gui = null;
 var guiSideBar = null;
 var project = null;
+var pdf = null;
 /**
  * Main program, it is also called from the HTML file
  * @param data
@@ -2306,6 +2307,8 @@ function programCaller(data, param) {
             guiSideBar = new GuiSideBar();
             // set Initialize for project
             project = new Project();
+            // set Initialize for Pdf
+            pdf = new Pdf();
             break;
         /**
          *When refresh pdf is pressed
