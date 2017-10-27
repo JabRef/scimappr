@@ -1,41 +1,66 @@
 # SciMappr Development Guide
 
-In this document, you will be informed about the internal structure of SCIMAPPR application.
+In this document, you will be informed about the internal structure of SciMappr application.
 
-# Structure of Scimappr Root Folder
+# Structure of SciMappr Root Folder
 
 The structure for the SciMappr root folder consists of:
 
 |_docs
+
 |____DevGuide.md
+
 |____index.md
+
 |____UserGuide.md
 
 |_build
+
 |____assets
+
 |__________mindmap.main.js
+
 |__________jsmind.js
+
 |__________mindmap.css
+
 |__________jsmind.css
+
 |__________mindmap.js
+
 |__________sha1.js
+
 |__________sha1-min.js
+
 |__________jsmind.draggable.js
+
 |__________jsmind.droppable.js
+
 |____img
+
 |__________pdf.png
+
 |____pdf.js
+
 
 |_node_modules
 
+
 |_src
+
 |___mindmap.main.ts
 
+
 |_server.js
+
 |_start.js
+
 |_init.js
+
 |_package.json
+
 |_README
+
 |_index.html
 
 The main program is mindmap.main.ts which is written in Typescript and is located in /src folder.
