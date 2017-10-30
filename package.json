@@ -7,8 +7,8 @@
     "start": "electron .",
     "build": "electron-packager . --overwrite --platform=win32 --electron-version=1.6.8 --out=release-builds --version-string.CompanyName=CE --version-string.FileDescription=CE --version-string.ProductName=\"Mindmap\""
   },
-  "author": "M Dandy Firmansyah",
-  "license": "ISC",
+  "author": "Scimappr_Team",
+  "license": "MIT",
   "devDependencies": {
     "electron-prebuilt": "^1.4.13",
     "electron-packager": "~9.1.0"
