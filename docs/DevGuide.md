@@ -119,6 +119,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
     *	public getPdfLastModifiedDate() – this method fetches the saved pdfLastModifiedDate from variable pdfLastModifiedDate
 
 3.	Class ListPdf -> extends Class Pdf
+	
 	Description: This class, as the extension from the Class Pdf, is used to save many pdf files property details in List.
 
     Variables:
