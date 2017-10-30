@@ -101,6 +101,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
     *	public setDroppable() – this method configures the options for the droppable
 
 2.	Class Pdf
+	
 	Description: This class is used to save a pdf file property details.
 
 	Variables: 
@@ -139,6 +140,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
     *	public chkDateChange(util, list:string[]) – this method compares with the last modified date with previous saved last modified date to find the changes in one or more pdf(s).
 
 4.	Class Annotation
+	
 	Description: This class is used to save an annotation property details.
 
     Variables: 
@@ -166,6 +168,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
 
 
 5.	Class ListAnnotations -> extends Class Annotation
+	
 	Description: This class, as an extension from Class Annotation, is used to save many annotations property details in List.
 
 	Variables:
@@ -181,6 +184,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
 
 
 6.	Class Utils
+	
 	Description: This class is used to do some routines or utilities which will be used frequently during some methods calling, including making JSON object and JSON string, read and write file into the system, etc.
 
 	Variables:
@@ -203,6 +207,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
 
 
 7.	Class Gui
+	
 	Description: This Class is used as a general Gui operations (except the sidebar Gui)
 
 	Variables:
@@ -226,6 +231,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
 	*	public findNodeByAttribute(attr:any, val:string) – this method finds the mindmap’s node by specifying its attribute
 
 8.	Class ContextMenu -> extends Class Gui
+	
 	Description: This class is used when users do right click in the mindmap section.
 
 	Variables:
@@ -243,6 +249,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
 	*	public actionDelete() – to delete the selected node
 
 9.	Class MindmapMenu -> extends Class Gui
+	
 	Description: This method, as an extension of the Class Gui, is used for all operations regarding the mindmap menu & mindmap changes.
 
 	Variables:
@@ -262,6 +269,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
 	*	public loadFileJsMind(content:any, type:string, freemind_name:any) - opens the existing mindmaps
 
 10.	Class GuiSideBar
+	
 	Description: This class, as extension of the Class Gui, is used for all operations regarding to the sidebar Gui (tab project and tab annotation).
 
 	Variables:
@@ -290,6 +298,7 @@ The Scimappr in the Typescript consists of several classes, such as: Main Progra
 
 
 11.	Class Project
+	
 	Description: This class is mainly about all operations regarding to the project, such as new project, open project, save project and close project. 
 
 	Variables:
